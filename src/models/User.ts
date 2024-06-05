@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 export interface IUser extends Document {
   name: string;
@@ -8,7 +9,8 @@ export interface IUser extends Document {
   otp: string | null;
   email: string | null;
   updatedTs: Date | null;
-  deltTs: Date | null;
+  delTs: Date | null;
+  verified: boolean;
   /*
   Consider adding numberOfOwners, defaultModel, and more
   */
@@ -47,6 +49,10 @@ const UserSchema: Schema = new Schema({
   delTs: {
     type: Date,
     default: null,
+  },
+  verified: {
+    type: Boolean,
+    default: false,
   },
 });
 

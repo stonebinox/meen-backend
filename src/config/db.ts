@@ -1,5 +1,6 @@
 import mongoose, { ConnectOptions } from "mongoose";
 import dotenv from "dotenv";
+import User from "../models/User";
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ const connectDB = async () => {
         useUnifiedTopology: true,
       } as ConnectOptions
     );
+
     console.log("MongoDB connected...");
   } catch (err) {
     console.error(err);
