@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import User, { IUser } from "../models/User";
+import { getUserByToken, markUserAsVerified } from "../services/user-service";
 
 const router = express.Router();
 
@@ -40,10 +41,8 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     const newUser: IUser = new User({
-      name: req.body.name,
       fullName: req.body.fullName,
       phoneNumber: req.body.phoneNumber,
-      email: req.body.email,
       otp: generateOtp(),
     });
 
@@ -53,7 +52,44 @@ router.post("/", async (req: Request, res: Response) => {
     res.status(200).send({ token, id: user._id });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server Error");
+    res.status(500).send({
+      error: "Server error",
+    });
+  }
+});
+
+router.post("/verification", async (req: Request, res: Response) => {
+  try {
+    const code = req.body.code;
+    let token = req.headers.authorization;
+
+    if (!token) {
+      return res.status(401).send({ error: "Unauthorized" });
+    }
+
+    if (!code || code.length !== 6) {
+      throw new Error("Invalid code");
+    }
+
+    token = token.replace("Bearer", "").trim();
+    const user = await getUserByToken(token);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const { otp } = user;
+
+    if (otp !== code) {
+      return res.status(406).send({ error: "Code mismatch" });
+    }
+
+    await markUserAsVerified(user._id as string);
+
+    res.status(200).send({ message: "Verified" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ error: "Server error" });
   }
 });
 

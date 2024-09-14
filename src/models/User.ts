@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
 export interface IUser extends Document {
-  name: string;
+  name: string | null;
   fullName: string | null;
   crtTs: Date;
   phoneNumber: string;
@@ -19,11 +19,11 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
   name: {
     type: String,
-    required: true,
+    default: null,
   },
   fullName: {
     type: String,
-    default: null,
+    required: true,
   },
   crtTs: {
     type: Date,
