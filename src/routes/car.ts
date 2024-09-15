@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import Car, { ICar } from "../models/Car";
 import { generateOtp } from "../helpers/generate-otp";
 import User from "../models/User";
+import { getCarById } from "../services/car-service";
 
 const router = express.Router();
 
@@ -55,6 +56,27 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     const car = await newCar.save();
+
+    res.status(200).send({ car });
+  } catch (e) {
+    console.log(e);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const carId = req.query.carId;
+
+    if (!carId) {
+      return res.status(402).send({ error: "Invalid car ID" });
+    }
+
+    const car = await getCarById(carId.toString());
+
+    if (!car) {
+      return res.status(402).send({ error: "Invalid car ID" });
+    }
 
     res.status(200).send({ car });
   } catch (e) {
