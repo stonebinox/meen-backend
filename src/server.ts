@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from "express";
+import express, { Application } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
@@ -16,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/user", require("./routes/user").default);
+app.use("/api/car", require("./routes/car").default);
 
 const PORT = process.env.PORT || 5000;
 

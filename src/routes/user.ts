@@ -2,7 +2,13 @@ import express, { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import User, { IUser } from "../models/User";
-import { getUserByToken, markUserAsVerified } from "../services/user-service";
+import {
+  markCarAsVerified,
+  markUserAsVerified,
+} from "../services/user-service";
+import { checkAuthToken } from "../services/token-service";
+import { generateOtp } from "../helpers/generate-otp";
+import Car from "../models/Car";
 
 const router = express.Router();
 
@@ -12,8 +18,6 @@ const generateAuthToken = (userId: any): String => {
 
   return token;
 };
-
-const generateOtp = (): Number => Math.floor(100000 + Math.random() * 900000);
 
 router.post("/", async (req: Request, res: Response) => {
   try {
@@ -60,22 +64,16 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.post("/verification", async (req: Request, res: Response) => {
   try {
-    const code = req.body.code;
-    let token = req.headers.authorization;
+    const user: IUser | null = await checkAuthToken(req);
 
-    if (!token) {
+    if (!user) {
       return res.status(401).send({ error: "Unauthorized" });
     }
 
+    const code = req.body.code;
+
     if (!code || code.length !== 6) {
       throw new Error("Invalid code");
-    }
-
-    token = token.replace("Bearer", "").trim();
-    const user = await getUserByToken(token);
-
-    if (!user) {
-      throw new Error("User not found");
     }
 
     const { otp } = user;
@@ -89,6 +87,69 @@ router.post("/verification", async (req: Request, res: Response) => {
     res.status(200).send({ message: "Verified" });
   } catch (err) {
     console.log(err);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
+router.get("/car-code", async (req: Request, res: Response) => {
+  try {
+    const user: IUser | null = await checkAuthToken(req);
+
+    if (!user) {
+      return res.status(401).send({ error: "Unauthorized" });
+    }
+
+    const car = await Car.findOne({
+      userId: user._id as string,
+    });
+
+    if (!car) {
+      return res.status(400).send({ error: "No car found" });
+    }
+
+    res
+      .status(200)
+      .send({ code: car.verificationCode, carId: car._id as string });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
+router.post("/car-confirm", async (req: Request, res: Response) => {
+  try {
+    const user: IUser | null = await checkAuthToken(req);
+
+    if (!user) {
+      return res.status(401).send({ error: "Unauthorized" });
+    }
+
+    const code = req.body.code;
+    const carId = req.body.carId;
+
+    if (!code || code.trim().length !== 6) {
+      return res.status(400).send({ error: "Invalid code" });
+    }
+
+    if (!carId || carId.trim() === "") {
+      return res.status(400).send({ error: "Invalid car ID" });
+    }
+
+    const car = await Car.findOne({
+      _id: carId,
+      verificationCode: code,
+      userId: user._id as string,
+    });
+
+    if (!car) {
+      return res.status(400).send({ error: "No car found" });
+    }
+
+    await markCarAsVerified(carId);
+
+    res.status(200).send({ car });
+  } catch (e) {
+    console.log(e);
     res.status(500).send({ error: "Server error" });
   }
 });

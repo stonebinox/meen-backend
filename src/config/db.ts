@@ -1,6 +1,5 @@
 import mongoose, { ConnectOptions } from "mongoose";
 import dotenv from "dotenv";
-import User from "../models/User";
 
 dotenv.config();
 
