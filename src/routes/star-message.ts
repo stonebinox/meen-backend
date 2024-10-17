@@ -9,6 +9,7 @@ import {
   initConversation,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
+import { generateInitialStarInstruction } from "../helpers/generate-initial0star-instruction";
 
 const router = express.Router();
 
@@ -63,7 +64,23 @@ router.post("/add", async (req: Request, res: Response) => {
     const latestMessage = await newStarMessage.save();
     recentMessages.push(latestMessage);
 
-    const parsedMessages = recentMessages.map((message) => message.content);
+    let parsedMessages = recentMessages.map((message) => message.content);
+    const latestSystemMessage = generateInitialStarInstruction(
+      user.fullName || "User",
+      car?.color || "Unknown"
+    );
+
+    if (parsedMessages[0].role === "system") {
+      parsedMessages[0].content = latestSystemMessage;
+    } else {
+      parsedMessages = [
+        {
+          role: "system",
+          content: latestSystemMessage,
+        },
+        ...parsedMessages,
+      ];
+    }
 
     const response = await getOpenAIResponse(parsedMessages);
     const starResponse: IStarMessage = new StarMessage({
