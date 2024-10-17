@@ -62,7 +62,7 @@ router.post("/add", async (req: Request, res: Response) => {
 
     recentMessages = await getRecentMessages(user.id);
     const latestMessage = await newStarMessage.save();
-    recentMessages.push(latestMessage);
+    recentMessages = [latestMessage, ...recentMessages];
 
     let parsedMessages = recentMessages.map((message) => message.content);
     const latestSystemMessage = generateInitialStarInstruction(
@@ -70,19 +70,18 @@ router.post("/add", async (req: Request, res: Response) => {
       car?.color || "Unknown"
     );
 
-    if (parsedMessages[0].role === "system") {
-      parsedMessages[0].content = latestSystemMessage;
+    if (parsedMessages[parsedMessages.length - 1].role === "system") {
+      parsedMessages[parsedMessages.length - 1].content = latestSystemMessage;
     } else {
-      parsedMessages = [
-        {
-          role: "system",
-          content: latestSystemMessage,
-        },
-        ...parsedMessages,
-      ];
+      parsedMessages.push({
+        role: "system",
+        content: latestSystemMessage,
+      });
     }
 
-    const response = await getOpenAIResponse(parsedMessages);
+    const reversedMessages = parsedMessages.reverse();
+
+    const response = await getOpenAIResponse(reversedMessages);
     const starResponse: IStarMessage = new StarMessage({
       content: response,
       userId: user.id,
@@ -93,6 +92,47 @@ router.post("/add", async (req: Request, res: Response) => {
     return res.status(200).send({
       message: response,
     });
+  } catch (e) {
+    console.log(e);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
+router.post("/init", async (req: Request, res: Response) => {
+  try {
+    const user: IUser | null = await checkAuthToken(req);
+
+    if (!user) {
+      return res.status(401).send({ error: "Unauthorized" });
+    }
+
+    const source = req.body.sourceId;
+
+    if (!source) {
+      return res.status(400).send({ error: "Invalid source" });
+    }
+
+    let car = null;
+
+    if (source !== "app") {
+      car = await getCarById(source);
+
+      if (!car) {
+        return res.status(400).send({ error: "Invalid source" });
+      }
+    }
+    // add an else condition to detect the latest car driven by the user
+    // it's going to be unknown if the source is "app"
+
+    let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+
+    if (recentMessages.length !== 0) {
+      return res.status(400).send({ error: "Chat already initiated" });
+    }
+
+    await initConversation(user, car?.color || "Unknown", source);
+
+    return res.status(200).send({ success: true });
   } catch (e) {
     console.log(e);
     res.status(500).send({ error: "Server error" });
