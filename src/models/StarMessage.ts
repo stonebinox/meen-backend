@@ -4,6 +4,7 @@ import { ChatCompletionMessageParam } from "openai/resources";
 export interface IStarMessage extends Document {
   content: ChatCompletionMessageParam;
   userId: string;
+  source: string; // this can be "app" or a car ID
   crtTs: Date;
   delTs: Date | null;
 }
@@ -16,6 +17,11 @@ const StarMessageSchema: Schema = new Schema({
   userId: {
     type: String,
     required: true,
+  },
+  source: {
+    type: String,
+    required: true,
+    default: "app",
   },
   crtTs: {
     type: Date,

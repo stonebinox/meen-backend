@@ -17,6 +17,7 @@ app.use(express.json());
 
 app.use("/api/user", require("./routes/user").default);
 app.use("/api/car", require("./routes/car").default);
+app.use("/api/star-message", require("./routes/star-message").default);
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+
 import Car, { ICar } from "../models/Car";
 import { generateOtp } from "../helpers/generate-otp";
 import User from "../models/User";
