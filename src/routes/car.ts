@@ -4,6 +4,7 @@ import Car, { ICar } from "../models/Car";
 import { generateOtp } from "../helpers/generate-otp";
 import User from "../models/User";
 import { getCarById } from "../services/car-service";
+import { generateAuthToken } from "../services/token-service";
 
 const router = express.Router();
 
@@ -79,7 +80,14 @@ router.get("/", async (req: Request, res: Response) => {
       return res.status(402).send({ error: "Invalid car ID" });
     }
 
-    res.status(200).send({ car });
+    let token = null;
+
+    if (car.verifiedTs) {
+      const { userId } = car;
+      token = generateAuthToken(userId);
+    }
+
+    res.status(200).send({ car, token });
   } catch (e) {
     console.log(e);
     res.status(500).send({ error: "Server error" });

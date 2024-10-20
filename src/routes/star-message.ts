@@ -127,12 +127,14 @@ router.post("/init", async (req: Request, res: Response) => {
     let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
 
     if (recentMessages.length !== 0) {
-      return res.status(400).send({ error: "Chat already initiated" });
+      return res.status(200).send({ message: recentMessages[0] });
     }
 
     await initConversation(user, car?.color || "Unknown", source);
 
-    return res.status(200).send({ success: true });
+    recentMessages = await getRecentMessages(user.id);
+
+    return res.status(200).send({ message: recentMessages[0] });
   } catch (e) {
     console.log(e);
     res.status(500).send({ error: "Server error" });

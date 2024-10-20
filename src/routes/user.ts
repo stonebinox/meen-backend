@@ -1,23 +1,15 @@
 import express, { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 
 import User, { IUser } from "../models/User";
 import {
   markCarAsVerified,
   markUserAsVerified,
 } from "../services/user-service";
-import { checkAuthToken } from "../services/token-service";
+import { checkAuthToken, generateAuthToken } from "../services/token-service";
 import { generateOtp } from "../helpers/generate-otp";
 import Car from "../models/Car";
 
 const router = express.Router();
-
-const generateAuthToken = (userId: any): String => {
-  const payload = { id: userId, date: new Date().getTime() };
-  const token = jwt.sign(payload, process.env.JWT_SECRET as string);
-
-  return token;
-};
 
 router.post("/", async (req: Request, res: Response) => {
   try {
