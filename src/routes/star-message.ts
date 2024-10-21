@@ -87,10 +87,10 @@ router.post("/add", async (req: Request, res: Response) => {
       userId: user.id,
       source,
     });
-    await starResponse.save();
+    const newResponse = await starResponse.save();
 
     return res.status(200).send({
-      message: response,
+      message: newResponse,
     });
   } catch (e) {
     console.log(e);
