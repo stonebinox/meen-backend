@@ -9,7 +9,7 @@ import {
   initConversation,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
-import { generateInitialStarInstruction } from "../helpers/generate-initial0star-instruction";
+import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
 
 const router = express.Router();
 
@@ -48,7 +48,10 @@ router.post("/add", async (req: Request, res: Response) => {
     const newStarMessage: IStarMessage = new StarMessage({
       content: {
         role: "user",
-        content: userMessage,
+        content: `{
+          message: "${userMessage}",
+          event: "user",
+        }`,
       },
       userId: user.id,
       source,

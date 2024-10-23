@@ -4,7 +4,7 @@ import {
 } from "openai/resources";
 import OpenAI from "openai";
 
-import { generateInitialStarInstruction } from "../helpers/generate-initial0star-instruction";
+import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 
