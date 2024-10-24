@@ -10,6 +10,10 @@ export interface IUser extends Document {
   updatedTs: Date | null;
   delTs: Date | null;
   verified: boolean;
+  starPreferences?: {
+    name?: string;
+    language?: string;
+  } | null;
   /*
   Consider adding numberOfOwners, defaultModel, and more
   */
@@ -52,6 +56,19 @@ const UserSchema: Schema = new Schema({
   verified: {
     type: Boolean,
     default: false,
+  },
+  starPreferences: {
+    default: null,
+    type: {
+      name: {
+        type: String,
+        default: "Star",
+      },
+      language: {
+        type: String,
+        default: "en-US",
+      },
+    },
   },
 });
 

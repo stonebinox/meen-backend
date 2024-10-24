@@ -42,4 +42,19 @@ const markCarAsVerified = async (carId: string) => {
   );
 };
 
-export { getUserByToken, markUserAsVerified, markCarAsVerified };
+const setStarName = async (starName: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      $set: {
+        starPreferences: {
+          name: starName,
+        },
+      },
+    }
+  );
+};
+
+export { getUserByToken, markUserAsVerified, markCarAsVerified, setStarName };

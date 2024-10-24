@@ -6,6 +6,7 @@ import StarMessage, { IStarMessage } from "../models/StarMessage";
 import {
   getOpenAIResponse,
   getRecentMessages,
+  handleToolCall,
   initConversation,
   triggerEvent,
 } from "../services/star-message-service";
@@ -86,12 +87,21 @@ router.post("/add", async (req: Request, res: Response) => {
     const reversedMessages = parsedMessages.reverse();
 
     const response = await getOpenAIResponse(reversedMessages);
+    const toolCall = response.tool_calls;
     const starResponse: IStarMessage = new StarMessage({
       content: response,
       userId: user.id,
       source,
     });
     const newResponse = await starResponse.save();
+
+    if (toolCall) {
+      const starResponse = await handleToolCall(toolCall[0], user.id, source);
+
+      return res.status(200).send({
+        message: starResponse,
+      });
+    }
 
     return res.status(200).send({
       message: newResponse,
@@ -128,9 +138,17 @@ router.post("/init", async (req: Request, res: Response) => {
     // add an else condition to detect the latest car driven by the user
     // it's going to be unknown if the source is "app"
 
-    let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+    let recentMessages: any[] = await getRecentMessages(user.id);
 
     if (recentMessages.length !== 0) {
+      if (recentMessages[0].content.tool_calls) {
+        await handleToolCall(
+          recentMessages[0].content.tool_calls[0],
+          user.id,
+          source
+        );
+      }
+
       const starResponse = await triggerEvent(
         "app",
         { appLaunched: true },

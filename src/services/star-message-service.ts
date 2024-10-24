@@ -1,12 +1,15 @@
 import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
 } from "openai/resources";
 import OpenAI from "openai";
 
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
+import { tools } from "../helpers/star-tools";
+import { setStarName } from "./user-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -59,6 +62,7 @@ const getOpenAIResponse = async (
   const response = await openai.chat.completions.create({
     messages,
     model: "gpt-4o-mini",
+    tools,
   });
 
   const { choices } = response;
@@ -102,4 +106,80 @@ const triggerEvent = async (
   return starResponseDto;
 };
 
-export { getRecentMessages, initConversation, getOpenAIResponse, triggerEvent };
+const handleToolCall = async (
+  toolCall: ChatCompletionMessageToolCall,
+  userId: string,
+  source: string
+) => {
+  const {
+    function: { arguments: args, name },
+    id: toolId,
+  } = toolCall;
+
+  switch (name) {
+    case "changeStarName":
+      const parsedArgs = JSON.parse(args);
+      const starResponse = await changeStarName({
+        ...parsedArgs,
+        userId,
+        source,
+        toolId,
+      });
+
+      return starResponse;
+  }
+};
+
+interface ChangeStarNameParams {
+  name: string;
+  userId: string;
+  source: string;
+  toolId: string;
+}
+
+const changeStarName = async ({
+  name,
+  userId,
+  source,
+  toolId,
+}: ChangeStarNameParams) => {
+  await setStarName(name, userId);
+  await sendToolResponse(toolId, { name }, userId, source);
+
+  const starResponse = await triggerEvent(
+    "customization",
+    {
+      starName: name,
+    },
+    userId,
+    source
+  );
+
+  return starResponse;
+};
+
+const sendToolResponse = async (
+  toolId: string,
+  content: object,
+  userId: string,
+  source: string
+) => {
+  const toolResponse: IStarMessage = new StarMessage({
+    content: {
+      role: "tool",
+      content: JSON.stringify(content),
+      tool_call_id: toolId,
+    },
+    userId,
+    source,
+  });
+  await toolResponse.save();
+};
+
+export {
+  getRecentMessages,
+  initConversation,
+  getOpenAIResponse,
+  triggerEvent,
+  handleToolCall,
+};
