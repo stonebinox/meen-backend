@@ -67,4 +67,39 @@ const getOpenAIResponse = async (
   return message;
 };
 
-export { getRecentMessages, initConversation, getOpenAIResponse };
+const triggerEvent = async (
+  eventName: string,
+  eventData: any,
+  userId: string,
+  source: string
+): Promise<IStarMessage> => {
+  const appLaunchedMessage: IStarMessage = new StarMessage({
+    content: {
+      role: "user",
+      content: `{
+        message: "",
+        event: "${eventName}",
+        eventData: ${JSON.stringify(eventData)}
+      }`,
+    },
+    userId,
+    source,
+  });
+  const eventMessage = await appLaunchedMessage.save();
+  const recentMessages: IStarMessage[] = await getRecentMessages(userId);
+  const reversed = recentMessages.reverse();
+  reversed.push(eventMessage);
+  const starResponse = await getOpenAIResponse(
+    reversed.map((message) => message.content)
+  );
+  const starResponseMessage: IStarMessage = new StarMessage({
+    content: starResponse,
+    userId,
+    source,
+  });
+  const starResponseDto = await starResponseMessage.save();
+
+  return starResponseDto;
+};
+
+export { getRecentMessages, initConversation, getOpenAIResponse, triggerEvent };

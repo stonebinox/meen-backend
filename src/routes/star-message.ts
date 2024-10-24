@@ -7,6 +7,7 @@ import {
   getOpenAIResponse,
   getRecentMessages,
   initConversation,
+  triggerEvent,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
@@ -130,7 +131,14 @@ router.post("/init", async (req: Request, res: Response) => {
     let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
 
     if (recentMessages.length !== 0) {
-      return res.status(200).send({ message: recentMessages[0] });
+      const starResponse = await triggerEvent(
+        "app",
+        { appLaunched: true },
+        user.id,
+        source
+      );
+
+      return res.status(200).send({ message: starResponse });
     }
 
     await initConversation(user, car?.color || "Unknown", source);

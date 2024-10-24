@@ -48,7 +48,7 @@ export const generateInitialStarInstruction = (
       Input from user will be in the following JSON/Typescript structure:
       {
         "message": string | null, // user's speech as text; this can be null if it's an event based input
-        "event": "user" | "geolocation" | "sensor" | "clock" | "battery" | "charger" | "media" | "customization" string, // defaults to "user" only when user speaks,
+        "event": "user" | "geolocation" | "sensor" | "clock" | "battery" | "charger" | "media" | "customization" | "vehicle" | "app" | string, // defaults to "user" only when user speaks,
         "eventData"?: Object, // contains JSON style key-value object of data when event is NOT "user"; won't be included when user speaks
       }
       
@@ -57,5 +57,8 @@ export const generateInitialStarInstruction = (
         "message": <your response>,
         "data": <object data if any>,
         "callback": <callback function if any>
-      }`;
+      }
+        
+      Make sure your actual text response to the user has no formatting as all of your responses are being read out by a voice engine.
+      `;
 };
