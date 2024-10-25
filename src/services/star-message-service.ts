@@ -76,8 +76,8 @@ const triggerEvent = async (
   eventData: any,
   userId: string,
   source: string
-): Promise<IStarMessage> => {
-  const appLaunchedMessage: IStarMessage = new StarMessage({
+): Promise<void> => {
+  const appTriggerEventMessage: IStarMessage = new StarMessage({
     content: {
       role: "user",
       content: `{
@@ -89,44 +89,45 @@ const triggerEvent = async (
     userId,
     source,
   });
-  const eventMessage = await appLaunchedMessage.save();
-  const recentMessages: IStarMessage[] = await getRecentMessages(userId);
-  const reversed = recentMessages.reverse();
-  reversed.push(eventMessage);
-  const starResponse = await getOpenAIResponse(
-    reversed.map((message) => message.content)
-  );
-  const starResponseMessage: IStarMessage = new StarMessage({
-    content: starResponse,
-    userId,
-    source,
-  });
-  const starResponseDto = await starResponseMessage.save();
+  await appTriggerEventMessage.save();
 
-  return starResponseDto;
+  return;
 };
 
-const handleToolCall = async (
+const handleToolCalls = async (
+  toolCalls: ChatCompletionMessageToolCall[],
+  userId: string,
+  source: string
+) => {
+  for (let i = 0; i < toolCalls.length; i++) {
+    const tool = toolCalls[i];
+    const {
+      function: { arguments: args },
+      id: toolId,
+    } = tool;
+    await saveToolResponse(toolId, JSON.parse(args), userId, source);
+  }
+};
+
+const parseToolCall = async (
   toolCall: ChatCompletionMessageToolCall,
   userId: string,
   source: string
 ) => {
   const {
     function: { arguments: args, name },
-    id: toolId,
   } = toolCall;
 
   switch (name) {
     case "changeStarName":
       const parsedArgs = JSON.parse(args);
-      const starResponse = await changeStarName({
+      await changeStarName({
         ...parsedArgs,
         userId,
         source,
-        toolId,
       });
 
-      return starResponse;
+      break;
   }
 };
 
@@ -141,12 +142,10 @@ const changeStarName = async ({
   name,
   userId,
   source,
-  toolId,
 }: ChangeStarNameParams) => {
   await setStarName(name, userId);
-  await sendToolResponse(toolId, { name }, userId, source);
 
-  const starResponse = await triggerEvent(
+  await triggerEvent(
     "customization",
     {
       starName: name,
@@ -154,11 +153,9 @@ const changeStarName = async ({
     userId,
     source
   );
-
-  return starResponse;
 };
 
-const sendToolResponse = async (
+const saveToolResponse = async (
   toolId: string,
   content: object,
   userId: string,
@@ -181,5 +178,6 @@ export {
   initConversation,
   getOpenAIResponse,
   triggerEvent,
-  handleToolCall,
+  parseToolCall,
+  handleToolCalls,
 };

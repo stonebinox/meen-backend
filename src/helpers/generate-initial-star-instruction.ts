@@ -59,6 +59,6 @@ export const generateInitialStarInstruction = (
         "callback": <callback function if any>
       }
         
-      Make sure your actual text response to the user has no formatting as all of your responses are being read out by a voice engine.
+      Make sure your actual text response to the user has no formatting as all of your responses are being read out by a voice engine. If you call a function, you should only call one function per response.
       `;
 };

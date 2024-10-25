@@ -6,8 +6,9 @@ import StarMessage, { IStarMessage } from "../models/StarMessage";
 import {
   getOpenAIResponse,
   getRecentMessages,
-  handleToolCall,
+  handleToolCalls,
   initConversation,
+  parseToolCall,
   triggerEvent,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
@@ -96,7 +97,25 @@ router.post("/add", async (req: Request, res: Response) => {
     const newResponse = await starResponse.save();
 
     if (toolCall) {
-      const starResponse = await handleToolCall(toolCall[0], user.id, source);
+      await handleToolCalls(toolCall, user.id, source);
+
+      for (let i = 0; i < toolCall.length; i++) {
+        const tool = toolCall[i];
+        await parseToolCall(tool, user.id, source);
+      }
+
+      const recentMessages = await getRecentMessages(user.id);
+      const reversed = recentMessages.reverse();
+      const response = await getOpenAIResponse(
+        reversed.map((message) => message.content)
+      );
+      const starResponseMessage: IStarMessage = new StarMessage({
+        content: response,
+        userId: user.id,
+        source,
+      });
+
+      const starResponse = await starResponseMessage.save();
 
       return res.status(200).send({
         message: starResponse,
@@ -142,19 +161,31 @@ router.post("/init", async (req: Request, res: Response) => {
 
     if (recentMessages.length !== 0) {
       if (recentMessages[0].content.tool_calls) {
-        await handleToolCall(
-          recentMessages[0].content.tool_calls[0],
+        await handleToolCalls(
+          recentMessages[0].content.tool_calls,
           user.id,
           source
         );
+        for (let i = 0; i < recentMessages[0].content.tool_calls.length; i++) {
+          const tool = recentMessages[0].content.tool_calls[i];
+          await parseToolCall(tool, user.id, source);
+        }
       }
 
-      const starResponse = await triggerEvent(
-        "app",
-        { appLaunched: true },
-        user.id,
-        source
+      await triggerEvent("app", { appLaunched: true }, user.id, source);
+
+      recentMessages = await getRecentMessages(user.id);
+      const reversed = recentMessages.reverse();
+      const response = await getOpenAIResponse(
+        reversed.map((message) => message.content)
       );
+      const starResponseMessage: IStarMessage = new StarMessage({
+        content: response,
+        userId: user.id,
+        source,
+      });
+
+      const starResponse = await starResponseMessage.save();
 
       return res.status(200).send({ message: starResponse });
     }
