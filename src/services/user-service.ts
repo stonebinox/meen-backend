@@ -57,4 +57,25 @@ const setStarName = async (starName: string, userId: string) => {
   );
 };
 
-export { getUserByToken, markUserAsVerified, markCarAsVerified, setStarName };
+const setStarLanguage = async (starLanguage: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      $set: {
+        starPreferences: {
+          language: starLanguage,
+        },
+      },
+    }
+  );
+};
+
+export {
+  getUserByToken,
+  markUserAsVerified,
+  markCarAsVerified,
+  setStarName,
+  setStarLanguage,
+};

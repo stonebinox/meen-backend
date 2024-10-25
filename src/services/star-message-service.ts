@@ -9,7 +9,7 @@ import { generateInitialStarInstruction } from "../helpers/generate-initial-star
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
-import { setStarName } from "./user-service";
+import { setStarLanguage, setStarName } from "./user-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -128,14 +128,44 @@ const parseToolCall = async (
       });
 
       break;
+    case "changeStarLanguage":
+      await changeStarLanguage({
+        ...JSON.parse(args),
+        userId,
+        source,
+      });
+
+      break;
   }
+};
+
+interface ChangeStarLanguageParams {
+  language: string;
+  userId: string;
+  source: string;
+}
+
+const changeStarLanguage = async ({
+  language,
+  userId,
+  source,
+}: ChangeStarLanguageParams) => {
+  await setStarLanguage(language, userId);
+
+  await triggerEvent(
+    "customization",
+    {
+      starLanguage: language,
+    },
+    userId,
+    source
+  );
 };
 
 interface ChangeStarNameParams {
   name: string;
   userId: string;
   source: string;
-  toolId: string;
 }
 
 const changeStarName = async ({

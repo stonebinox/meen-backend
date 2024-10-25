@@ -20,4 +20,36 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "changeStarLanguage",
+      description:
+        "To change Star's default language of communication. Call this when the user wants to speak to Star in a different language",
+      parameters: {
+        type: "object",
+        properties: {
+          language: {
+            type: "string",
+            description: "The language configuration the user wants",
+            enum: [
+              "en-US",
+              "en-IN",
+              "en-GB",
+              "kn-IN",
+              "hi-IN",
+              "ta-IN",
+              "te-IN",
+              "es-ES",
+              "it-IT",
+              "fr-FR",
+              "de-DE",
+            ],
+          },
+        },
+        additionalProperties: false,
+        required: ["language"],
+      },
+    },
+  },
 ];
