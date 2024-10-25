@@ -48,6 +48,12 @@ router.post("/add", async (req: Request, res: Response) => {
     // add an else condition to detect the latest car driven by the user
     // it's going to be unknown if the source is "app"
 
+    let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+
+    if (recentMessages.length === 0) {
+      await initConversation(user, car?.color || "Unknown", source);
+    }
+
     const newStarMessage: IStarMessage = new StarMessage({
       content: {
         role: "user",
@@ -60,37 +66,27 @@ router.post("/add", async (req: Request, res: Response) => {
       source,
     });
 
-    let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+    await newStarMessage.save();
+    const freshMessages = await getRecentMessages(user.id);
 
-    if (recentMessages.length === 0) {
-      await initConversation(user, car?.color || "Unknown", source);
-    }
-
-    recentMessages = await getRecentMessages(user.id);
-    const latestMessage = await newStarMessage.save();
-    recentMessages = [latestMessage, ...recentMessages];
-
-    let parsedMessages = recentMessages.map((message) => message.content);
-    const latestSystemMessage = generateInitialStarInstruction(
-      user.fullName || "User",
-      car?.color || "Unknown"
-    );
-
-    if (parsedMessages[parsedMessages.length - 1].role === "system") {
-      parsedMessages[parsedMessages.length - 1].content = latestSystemMessage;
-    } else {
-      parsedMessages.push({
-        role: "system",
-        content: latestSystemMessage,
-      });
-    }
-
+    const parsedMessages = freshMessages.map((message) => message.content);
     const reversedMessages = parsedMessages.reverse();
+    let openResponse = null;
 
-    const response = await getOpenAIResponse(reversedMessages);
-    const toolCall = response.tool_calls;
+    try {
+      openResponse = await getOpenAIResponse(reversedMessages);
+    } catch (e: any) {
+      console.log(e.message);
+    }
+
+    if (!openResponse) {
+      return res.status(500).send({ error: "Server error" });
+    }
+
+    const toolCall = openResponse.tool_calls;
+
     const starResponse: IStarMessage = new StarMessage({
-      content: response,
+      content: openResponse,
       userId: user.id,
       source,
     });
@@ -104,8 +100,8 @@ router.post("/add", async (req: Request, res: Response) => {
         await parseToolCall(tool, user.id, source);
       }
 
-      const recentMessages = await getRecentMessages(user.id);
-      const reversed = recentMessages.reverse();
+      const messages = await getRecentMessages(user.id);
+      const reversed = messages.reverse();
       const response = await getOpenAIResponse(
         reversed.map((message) => message.content)
       );

@@ -146,4 +146,19 @@ router.post("/car-confirm", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const user: IUser | null = await checkAuthToken(req);
+
+    if (!user) {
+      return res.status(400).send({ error: "Unauthorized" });
+    }
+
+    return res.status(200).send({ user });
+  } catch (e) {
+    console.log(e);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
 export default router;

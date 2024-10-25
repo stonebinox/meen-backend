@@ -48,11 +48,7 @@ const setStarName = async (starName: string, userId: string) => {
       _id: userId,
     },
     {
-      $set: {
-        starPreferences: {
-          name: starName,
-        },
-      },
+      "starPreferences.name": starName,
     }
   );
 };
@@ -63,11 +59,7 @@ const setStarLanguage = async (starLanguage: string, userId: string) => {
       _id: userId,
     },
     {
-      $set: {
-        starPreferences: {
-          language: starLanguage,
-        },
-      },
+      "starPreferences.language": starLanguage,
     }
   );
 };
