@@ -13,6 +13,7 @@ import {
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
+import { ChatCompletionMessageParam } from "openai/resources";
 
 const router = express.Router();
 
@@ -68,23 +69,20 @@ router.post("/add", async (req: Request, res: Response) => {
 
     await newStarMessage.save();
     const freshMessages = await getRecentMessages(user.id);
-
     const parsedMessages = freshMessages.map((message) => message.content);
+    const systemMessageContent = generateInitialStarInstruction(
+      user.name || "User",
+      car?.color || "Unknown"
+    );
+    const systemMessage: ChatCompletionMessageParam = {
+      role: "system",
+      content: systemMessageContent,
+    };
+
+    parsedMessages.push(systemMessage);
     const reversedMessages = parsedMessages.reverse();
-    let openResponse = null;
-
-    try {
-      openResponse = await getOpenAIResponse(reversedMessages);
-    } catch (e: any) {
-      console.log("errx", e.message);
-    }
-
-    if (!openResponse) {
-      return res.status(500).send({ error: "Server error" });
-    }
-
+    const openResponse = await getOpenAIResponse(reversedMessages);
     const toolCall = openResponse.tool_calls;
-
     const starResponse: IStarMessage = new StarMessage({
       content: openResponse,
       userId: user.id,
@@ -110,7 +108,6 @@ router.post("/add", async (req: Request, res: Response) => {
         userId: user.id,
         source,
       });
-
       const starResponse = await starResponseMessage.save();
 
       return res.status(200).send({
@@ -168,7 +165,16 @@ router.post("/init", async (req: Request, res: Response) => {
         }
       }
 
-      await triggerEvent("app", { appLaunched: true }, user.id, source);
+      await triggerEvent(
+        "app",
+        {
+          appLaunched: true,
+          description:
+            "This means that the Star app in the OS has been launched via app launch or because the car was started. This is a cue for you to initiate conversation with the user.",
+        },
+        user.id,
+        source
+      );
 
       recentMessages = await getRecentMessages(user.id);
       const reversed = recentMessages.reverse();
