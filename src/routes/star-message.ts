@@ -48,7 +48,7 @@ router.post("/add", async (req: Request, res: Response) => {
     // add an else condition to detect the latest car driven by the user
     // it's going to be unknown if the source is "app"
 
-    let recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+    const recentMessages: IStarMessage[] = await getRecentMessages(user.id);
 
     if (recentMessages.length === 0) {
       await initConversation(user, car?.color || "Unknown", source);
@@ -76,7 +76,7 @@ router.post("/add", async (req: Request, res: Response) => {
     try {
       openResponse = await getOpenAIResponse(reversedMessages);
     } catch (e: any) {
-      console.log(e.message);
+      console.log("errx", e.message);
     }
 
     if (!openResponse) {
