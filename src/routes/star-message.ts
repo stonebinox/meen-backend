@@ -70,8 +70,22 @@ router.post("/add", async (req: Request, res: Response) => {
     await newStarMessage.save();
     const freshMessages = await getRecentMessages(user.id);
     const parsedMessages = freshMessages.map((message) => message.content);
+
+    if (user.starPreferences) {
+      const starPreferenceMessage: ChatCompletionMessageParam = {
+        role: "user",
+        content: `{
+          message: "",
+          event: "customization",
+          eventData: ${user.starPreferences}
+        }`,
+      };
+
+      parsedMessages.push(starPreferenceMessage);
+    }
+
     const systemMessageContent = generateInitialStarInstruction(
-      user.name || "User",
+      user,
       car?.color || "Unknown"
     );
     const systemMessage: ChatCompletionMessageParam = {
@@ -80,6 +94,7 @@ router.post("/add", async (req: Request, res: Response) => {
     };
 
     parsedMessages.push(systemMessage);
+
     const reversedMessages = parsedMessages.reverse();
     const openResponse = await getOpenAIResponse(reversedMessages);
     const toolCall = openResponse.tool_calls;
