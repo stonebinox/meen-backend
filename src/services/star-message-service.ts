@@ -20,7 +20,7 @@ const getRecentMessages = async (userId: string) => {
     userId,
   })
     .sort({ crtTs: -1 })
-    .limit(100);
+    .limit(200);
 
   // we need to remove the very first message IF it's a response to a tool call
   const earliestMessage = messages[messages.length - 1];
