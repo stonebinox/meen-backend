@@ -39,35 +39,51 @@ router.post("/add", async (req: Request, res: Response) => {
 
     let car = null;
 
-    if (source !== "app") {
-      car = await getCarById(source);
+    if (
+      req.body.event &&
+      req.body.event?.trim() !== "" &&
+      req.body.event !== "user"
+    ) {
+      await triggerEvent(
+        req.body.event,
+        {
+          data: userMessage,
+        },
+        user.id,
+        source
+      );
+    } else {
+      if (source !== "app") {
+        car = await getCarById(source);
 
-      if (!car) {
-        return res.status(400).send({ error: "Invalid source" });
+        if (!car) {
+          return res.status(400).send({ error: "Invalid source" });
+        }
       }
+      // add an else condition to detect the latest car driven by the user
+      // it's going to be unknown if the source is "app"
+
+      const recentMessages: IStarMessage[] = await getRecentMessages(user.id);
+
+      if (recentMessages.length === 0) {
+        await initConversation(user, car?.color || "Unknown", source);
+      }
+
+      const newStarMessage: IStarMessage = new StarMessage({
+        content: {
+          role: "user",
+          content: `{
+            message: "${userMessage}",
+            event: "user",
+          }`,
+        },
+        userId: user.id,
+        source,
+      });
+
+      await newStarMessage.save();
     }
-    // add an else condition to detect the latest car driven by the user
-    // it's going to be unknown if the source is "app"
 
-    const recentMessages: IStarMessage[] = await getRecentMessages(user.id);
-
-    if (recentMessages.length === 0) {
-      await initConversation(user, car?.color || "Unknown", source);
-    }
-
-    const newStarMessage: IStarMessage = new StarMessage({
-      content: {
-        role: "user",
-        content: `{
-          message: "${userMessage}",
-          event: "user",
-        }`,
-      },
-      userId: user.id,
-      source,
-    });
-
-    await newStarMessage.save();
     const freshMessages = await getRecentMessages(user.id);
     const parsedMessages = freshMessages.map((message) => message.content);
 
