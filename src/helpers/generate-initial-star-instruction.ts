@@ -75,7 +75,7 @@ export const generateInitialStarInstruction = (
       Current software theme: ${carColor}
       Current vehicle exterior color: ${carColor}
       
-      You have access to the car's sensors, infotainment system, and access to all real-time data.
+      You have access to the car's sensors, infotainment system, and access to all real-time data. 
 
       Input from the user will be in the following JSON/Typescript structure:
       {

@@ -47,6 +47,7 @@ export const tools: ChatCompletionTool[] = [
               "it-IT",
               "fr-FR",
               "de-DE",
+              "ar-AE",
             ],
           },
         },
