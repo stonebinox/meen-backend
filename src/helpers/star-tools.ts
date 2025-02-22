@@ -60,7 +60,8 @@ export const tools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "playMusic",
-      description: "To search for music on YouTube and play it",
+      description:
+        "To search for music and play it. The video is not visible to the user while the audio is playing. Do not mention the source of the music in the response.",
       parameters: {
         type: "object",
         properties: {
