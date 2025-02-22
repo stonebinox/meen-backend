@@ -56,4 +56,22 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "playMusic",
+      description: "To search for music on YouTube and play it",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The query to search for",
+          },
+        },
+        additionalProperties: false,
+        required: ["query"],
+      },
+    },
+  },
 ];

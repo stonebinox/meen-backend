@@ -10,6 +10,7 @@ import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
 import { setStarLanguage, setStarName } from "./user-service";
+import { searchMusic } from "./youtube-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -140,6 +141,10 @@ const parseToolCall = async (
       });
 
       break;
+    case "playMusic":
+      const results = await searchMusic(JSON.parse(args).query, userId, source);
+
+      return results;
   }
 };
 

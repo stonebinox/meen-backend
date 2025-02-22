@@ -120,13 +120,14 @@ router.post("/add", async (req: Request, res: Response) => {
       source,
     });
     const newResponse = await starResponse.save();
+    let toolResponse = null;
 
     if (toolCall) {
       await handleToolCalls(toolCall, user.id, source);
 
       for (let i = 0; i < toolCall.length; i++) {
         const tool = toolCall[i];
-        await parseToolCall(tool, user.id, source);
+        toolResponse = await parseToolCall(tool, user.id, source);
       }
 
       const messages = await getRecentMessages(user.id);
@@ -143,6 +144,7 @@ router.post("/add", async (req: Request, res: Response) => {
 
       return res.status(200).send({
         message: starResponse,
+        toolResponse,
       });
     }
 
