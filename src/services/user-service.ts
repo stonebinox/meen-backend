@@ -64,10 +64,24 @@ const setStarLanguage = async (starLanguage: string, userId: string) => {
   );
 };
 
+const setUserKnowledge = async (key: string, value: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      $set: {
+        [`starPreferences.userData.${key}`]: value,
+      },
+    }
+  );
+};
+
 export {
   getUserByToken,
   markUserAsVerified,
   markCarAsVerified,
   setStarName,
   setStarLanguage,
+  setUserKnowledge,
 };

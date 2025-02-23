@@ -9,7 +9,7 @@ import { generateInitialStarInstruction } from "../helpers/generate-initial-star
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
-import { setStarLanguage, setStarName } from "./user-service";
+import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
 import { searchMusic } from "./youtube-service";
 
 const openai = new OpenAI({
@@ -145,6 +145,11 @@ const parseToolCall = async (
       const results = await searchMusic(JSON.parse(args).query, userId, source);
 
       return results;
+    case "updateUserKnowledge":
+      const { key, value } = JSON.parse(args);
+      await updateUserKnowledge({ key, value, userId, source });
+
+      return;
   }
 };
 
@@ -188,6 +193,31 @@ const changeStarName = async ({
     "customization",
     {
       starName: name,
+    },
+    userId,
+    source
+  );
+};
+
+interface UpdateUserKnowledgeParams {
+  key: string;
+  value: string;
+  userId: string;
+  source: string;
+}
+
+const updateUserKnowledge = async ({
+  key,
+  value,
+  userId,
+  source,
+}: UpdateUserKnowledgeParams) => {
+  await setUserKnowledge(key, value, userId);
+
+  await triggerEvent(
+    "customization",
+    {
+      [key]: value,
     },
     userId,
     source

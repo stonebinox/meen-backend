@@ -13,6 +13,9 @@ export interface IUser extends Document {
   starPreferences?: {
     name?: string;
     language?: string;
+    userData?: {
+      [key: string]: string;
+    };
   } | null;
   /*
   Consider adding numberOfOwners, defaultModel, and more
@@ -58,16 +61,18 @@ const UserSchema: Schema = new Schema({
     default: false,
   },
   starPreferences: {
-    default: null,
-    type: {
-      name: {
-        type: String,
-        default: "Star",
-      },
-      language: {
-        type: String,
-        default: "en-US",
-      },
+    name: {
+      type: String,
+      default: "Star",
+    },
+    language: {
+      type: String,
+      default: "en-US",
+    },
+    userData: {
+      type: Map,
+      of: String,
+      default: () => new Map(),
     },
   },
 });

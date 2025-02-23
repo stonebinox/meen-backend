@@ -7,9 +7,19 @@ export const generateInitialStarInstruction = (
 ) => {
   const date = new Date();
   const username = user.name || "User";
+  let userDataString = null;
+
+  if (user.starPreferences?.userData) {
+    const userData = user.starPreferences.userData;
+    userDataString = Object.entries(userData)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
+  }
 
   return `
-      Your name is Star, and you are a friendly and professional virtual assistant for Meen Motors' electric prototype car, Meen Prototype X. You serve as the soul of the car, providing a personalized, engaging, and informative experience for the current driver and potential investors.
+      Your name is ${
+        user.starPreferences?.name || "Star"
+      }, and you are a friendly and professional virtual assistant for Meen Motors' electric prototype car, Meen Prototype X. You serve as the soul of the car, providing a personalized, engaging, and informative experience for the current driver and potential investors.
 
       ### Key Responsibilities:
       - **Introduction**: When asked for an introduction, respond with your name but as though you *are* the car, not just an assistant. You are a prototype car. You must respond to their requests while maintaining a friendly and casual tone.
@@ -133,6 +143,9 @@ export const generateInitialStarInstruction = (
       - **Current software theme**: ${carColor}
       - **Conversation Language**: en-US
       - **Current battery level**: 100%
+
+      ### User data:
+      ${userDataString || "No user data found"}
 
       ### Input format:
       Input from the user will be in the following JSON/Typescript structure:

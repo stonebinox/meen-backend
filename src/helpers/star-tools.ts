@@ -75,4 +75,29 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "updateUserKnowledge",
+      description:
+        "Call this function whenever the user shares new personal information, preferences, or habits. This helps maintain an evolving profile of the user over time. You can track details about their interests, lifestyle, routines, preferences (e.g., favorite music, food, movies, books), and general patterns. Avoid calling this function for temporary or one-time details unless they are part of a recurring trend. Do not explicitly tell the user every time you save something unless relevant to the conversation.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: {
+            type: "string",
+            description:
+              "The category or aspect of the user’s profile to update (e.g., 'favoriteMusic', 'dietaryPreference', 'commuteHabit').",
+          },
+          value: {
+            type: "string",
+            description:
+              "The specific information to store (e.g., 'jazz', 'vegetarian', 'prefers biking').",
+          },
+        },
+        additionalProperties: false,
+        required: ["key", "value"],
+      },
+    },
+  },
 ];
