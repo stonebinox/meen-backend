@@ -104,18 +104,21 @@ export const tools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "findLocation",
-      description:
-        "Call this function to search for a location when the user provides a destination or location they want to drive to. This location will be used by the client-side code to find available routes. If you can predict the exact name of the location, you can use it directly. Otherwise, you can use the provided location as a search query to find the best match. You can also ask follow-up questions to confirm the location. The user may provide the destination in various formats, such as an address, business name, or general location. Be sure to add additional context like city names or other relevant details to improve the search results.",
+      description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input in various formats, such as an address, business name, or general location. Add additional context like city names or other relevant details to improve the search results in the "location" parameter. Your response will be used by Google Maps Autocomplete API to grab a list of possible suggestions within a given radius based on user input and base location. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions. If suggestions are found, only mention the localities and not the exact addresses. If no suggestions are found, you can inform the user accordingly.`,
       parameters: {
         type: "object",
         properties: {
-          destination: {
+          input: {
             type: "string",
-            description: "The destination the user wants to go to",
+            description: "The destination you think the user wants to go to.",
+          },
+          location: {
+            type: "string",
+            description: `Coordinates of their current location in "latitude,longitude" format. This information is present in "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
           },
         },
         additionalProperties: false,
-        required: ["destination"],
+        required: ["input", "location"],
       },
     },
   },

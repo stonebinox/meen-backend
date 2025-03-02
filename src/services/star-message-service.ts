@@ -11,6 +11,7 @@ import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
 import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
 import { searchMusic } from "./youtube-service";
+import { getPlaceSuggestion } from "./google-maps-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -151,12 +152,18 @@ const parseToolCall = async (
 
       return;
     case "findLocation":
-      const { destination } = JSON.parse(args);
-      await triggerEvent("findLocation", { destination }, userId, source); // we only log this
+      const { input, location } = JSON.parse(args);
+      console.log("findLocation", input, location);
+      await triggerEvent("findLocation", { input, location }, userId, source); // we only log this
+      const suggestions = await getPlaceSuggestion(input, location);
+      await triggerEvent(
+        "locationSuggestionsFound",
+        { suggestions },
+        userId,
+        source
+      ); // we let the AI read it out to the user first
 
-      return {
-        destination,
-      };
+      return;
   }
 };
 

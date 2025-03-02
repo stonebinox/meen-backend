@@ -69,12 +69,15 @@ router.post("/add", async (req: Request, res: Response) => {
         await initConversation(user, car?.color || "Unknown", source);
       }
 
+      const userContext = req.body.context || {};
+
       const newStarMessage: IStarMessage = new StarMessage({
         content: {
           role: "user",
           content: `{
             message: "${userMessage}",
             event: "user",
+            userContext: "${JSON.stringify(userContext)}",
           }`,
         },
         userId: user.id,

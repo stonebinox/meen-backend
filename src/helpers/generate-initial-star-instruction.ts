@@ -152,6 +152,7 @@ export const generateInitialStarInstruction = (
       {
         "message": string | null, // user's speech as text; this can be null if it's an event-based input
         "event": "user" | "geolocation" | "sensor" | "clock" | "battery" | "charger" | "media" | "customization" | "vehicle" | "app" | string, // defaults to "user" only when the user speaks,
+        "userContext": Object, // contains JSON-style key-value object of user's context data likke current location, music status, and more
         "eventData"?: Object, // contains JSON-style key-value object of data when event is NOT "user"; won't be included when the user speaks
       }
       
