@@ -153,7 +153,6 @@ const parseToolCall = async (
       return;
     case "findLocation":
       const { input, location } = JSON.parse(args);
-      console.log("findLocation", input, location);
       await triggerEvent("findLocation", { input, location }, userId, source); // we only log this
       const suggestions = await getPlaceSuggestion(input, location);
       await triggerEvent(
