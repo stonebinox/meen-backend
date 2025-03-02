@@ -11,7 +11,7 @@ import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
 import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
 import { searchMusic } from "./youtube-service";
-import { getPlaceSuggestion } from "./google-maps-service";
+import { getPlaceDetails, getPlaceSuggestion } from "./google-maps-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -163,6 +163,21 @@ const parseToolCall = async (
       ); // we let the AI read it out to the user first
 
       return;
+    case "navigateToLocation":
+      const { placeId } = JSON.parse(args);
+      await triggerEvent("getPlaceDetails", { placeId }, userId, source);
+      const place = await getPlaceDetails(placeId);
+      await triggerEvent("locationFound", { place }, userId, source);
+
+      if (place === "Location not found") {
+        return {
+          location: null,
+        };
+      }
+
+      return {
+        location: place,
+      };
   }
 };
 

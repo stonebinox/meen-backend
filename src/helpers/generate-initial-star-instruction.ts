@@ -164,6 +164,6 @@ export const generateInitialStarInstruction = (
         "callback": <callback function if any>
       }
         
-      Make sure your actual text response to the user has no formatting as all of your responses are being read out by a voice engine. If you call a function, you should only call one function per response.
+      Make sure your actual text response to the user has no formatting as all of your responses are being read out by a voice engine. If you call a function, you should only call one function per response. Make sure you never read out URLs, code snippets, coordinates, or any other non-text content. If you need to provide a URL, you can tell the user to open it on their phone.
       `;
 };

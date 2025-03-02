@@ -104,7 +104,9 @@ export const tools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "findLocation",
-      description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input in various formats, such as an address, business name, or general location. Add additional context like city names or other relevant details to improve the search results in the "location" parameter. Your response will be used by Google Maps Autocomplete API to grab a list of possible suggestions within a given radius based on user input and base location. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions. If suggestions are found, only mention the localities and not the exact addresses. If no suggestions are found, you can inform the user accordingly.`,
+      description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input as an address, name, or general location. You should add any additional context like city name or other relevant details to improve the search results in the "input" parameter. Your response will be used by Google Maps API to grab a list of possible suggestions within a given radius based on user "input" and base "location" coordinates. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions.
+      
+      When suggestions are found, give the user a list of options in a human friendly format to choose from. Don't read out URLs, email addresses, and phone numbers of any kind.`,
       parameters: {
         type: "object",
         properties: {
@@ -114,11 +116,29 @@ export const tools: ChatCompletionTool[] = [
           },
           location: {
             type: "string",
-            description: `Coordinates of their current location in "latitude,longitude" format. This information is present in "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
+            description: `Coordinates of in "latitude,longitude" format. This information is present in "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
           },
         },
         additionalProperties: false,
         required: ["input", "location"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "navigateToLocation",
+      description: `Call this function only when the user confirms a location from the list of suggestions provided in the "locationSuggestionsFound" event from the most recent entry in the message history. If suggestion were found, use the "place_id" from the suggestions list to fetch the selected location from the list of suggestions and provide the coordinates to navigate. Otherwise, tell the user that no location was found.`,
+      parameters: {
+        type: "object",
+        properties: {
+          placeId: {
+            type: "string",
+            description: "The unique identifier of the selected location.",
+          },
+        },
+        additionalProperties: false,
+        required: ["placeId"],
       },
     },
   },
