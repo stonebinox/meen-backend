@@ -105,7 +105,7 @@ export const tools: ChatCompletionTool[] = [
     function: {
       name: "findLocation",
       description:
-        "Call this function to search for a location when the user provides a destination or location they want to drive to. This location will be used by the client-side code to find available routes. If you can predict the exact name of the location, you can use it directly. Otherwise, you can use the provided location as a search query to find the best match. You can also ask follow-up questions to confirm the location. The user may provide the destination in various formats, such as an address, business name, or general location.",
+        "Call this function to search for a location when the user provides a destination or location they want to drive to. This location will be used by the client-side code to find available routes. If you can predict the exact name of the location, you can use it directly. Otherwise, you can use the provided location as a search query to find the best match. You can also ask follow-up questions to confirm the location. The user may provide the destination in various formats, such as an address, business name, or general location. Be sure to add additional context like city names or other relevant details to improve the search results.",
       parameters: {
         type: "object",
         properties: {
