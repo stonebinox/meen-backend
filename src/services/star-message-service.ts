@@ -150,6 +150,13 @@ const parseToolCall = async (
       await updateUserKnowledge({ key, value, userId, source });
 
       return;
+    case "findLocation":
+      const { destination } = JSON.parse(args);
+      await triggerEvent("findLocation", { destination }, userId, source); // we only log this
+
+      return {
+        destination,
+      };
   }
 };
 
