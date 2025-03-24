@@ -69,6 +69,33 @@ const getOpenAIResponse = async (
     messages,
     model: "gpt-4o-mini",
     tools,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "response",
+        description: "Response to user",
+        schema: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+            },
+            data: {
+              type: "object",
+              default: {},
+            },
+            callback: {
+              type: "string",
+              default: null,
+            },
+            speechInstructions: {
+              type: "string",
+            },
+          },
+          required: ["message", "speechInstructions"],
+        },
+      },
+    },
   });
 
   const { choices } = response;
