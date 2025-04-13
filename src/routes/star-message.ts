@@ -1,21 +1,115 @@
 import express, { Request, Response } from "express";
+import { ChatCompletionMessageParam } from "openai/resources";
+import fs from "fs";
+import path from "path";
 
 import { checkAuthToken } from "../services/token-service";
 import { IUser } from "../models/User";
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import {
+  getOpenAIAudioResponse,
   getOpenAIResponse,
   getRecentMessages,
   handleToolCalls,
   initConversation,
   parseToolCall,
+  transcribeAudio,
   triggerEvent,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
-import { ChatCompletionMessageParam } from "openai/resources";
+import { convertM4ABase64ToWavBase64 } from "../helpers/convert-audio";
+import { getStarLanguage } from "../services/user-service";
 
 const router = express.Router();
+
+router.post("/speak", async (req: Request, res: Response) => {
+  try {
+    const user = await checkAuthToken(req);
+    if (!user) return res.status(401).send({ error: "Unauthorized" });
+
+    const { sourceId, context: userContext } = req.body;
+    const audioBase64 = req.body.audioBase64; // or req.file.path if using multer
+    const wavBase64 = await convertM4ABase64ToWavBase64(audioBase64);
+    const format: "wav" | "mp3" = req.body.audioFormat || "wav"; // default to m4a if not provided
+
+    if (!sourceId || !audioBase64) {
+      return res.status(400).send({ error: "Missing source or audio file" });
+    }
+
+    const recentMessages = await getRecentMessages(user.id);
+    const car = await getCarById(sourceId);
+    const systemMessageContent = generateInitialStarInstruction(
+      user,
+      car?.color || "Unknown"
+    );
+
+    const systemMessage: ChatCompletionMessageParam = {
+      role: "system",
+      content: systemMessageContent,
+    };
+
+    const parsedMessages = [
+      ...recentMessages.map((m) => m.content),
+      systemMessage,
+    ].reverse();
+
+    const { audioData, transcript } = await getOpenAIAudioResponse(
+      parsedMessages,
+      wavBase64,
+      format
+    );
+
+    res.status(200).send({
+      message: {
+        audio: audioData,
+        transcript,
+      },
+    });
+
+    const starLanguage = await getStarLanguage(user.id);
+    const userTranscript = await transcribeAudio(
+      wavBase64,
+      format,
+      starLanguage
+    );
+    const newStarMessage: IStarMessage = new StarMessage({
+      content: {
+        role: "user",
+        content: JSON.stringify({
+          message: userTranscript,
+          event: "user",
+          userContext,
+          promptVersion: process.env.PROMPT_VERSION,
+        }),
+      },
+      userId: user.id,
+      source: sourceId,
+    });
+
+    await newStarMessage.save();
+
+    const assistantMessage: IStarMessage = new StarMessage({
+      content: audioData
+        ? {
+            role: "assistant",
+            content: JSON.stringify({
+              message: transcript,
+              data: {},
+              callback: null,
+              promptVersion: process.env.PROMPT_VERSION,
+            }),
+          }
+        : transcript,
+      userId: user.id,
+      source: sourceId,
+    });
+    await assistantMessage.save();
+  } catch (e) {
+    console.error("Audio message error:", e);
+    return res.status(500).send({ error: "Server error" });
+  }
+});
 
 router.post("/add", async (req: Request, res: Response) => {
   try {

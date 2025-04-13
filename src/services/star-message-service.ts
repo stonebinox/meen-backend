@@ -4,6 +4,9 @@ import {
   ChatCompletionMessageToolCall,
 } from "openai/resources";
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
+import { tmpdir } from "os";
 
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
 import StarMessage, { IStarMessage } from "../models/StarMessage";
@@ -62,6 +65,70 @@ const initConversation = async (
   await starResponse.save();
 };
 
+interface AudioResponse {
+  audioData: string | null; // base64
+  transcript: string | ChatCompletionMessage;
+}
+
+const getOpenAIAudioResponse = async (
+  messages: ChatCompletionMessageParam[],
+  audioBase64: string,
+  format: "wav" | "mp3"
+): Promise<AudioResponse> => {
+  // Attach audio as an additional "input_audio" message segment
+  const finalMessages: ChatCompletionMessageParam[] = [
+    ...messages,
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "The following is an audio message from the user.",
+        },
+        {
+          type: "input_audio",
+          input_audio: {
+            data: audioBase64,
+            format, // or "mp3"
+          },
+        },
+      ],
+    },
+  ];
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini-audio-preview-2024-12-17",
+    messages: finalMessages,
+    temperature: 0.7,
+    modalities: ["audio", "text"],
+    audio: {
+      format: "wav",
+      voice: "nova",
+    },
+  });
+
+  if (response.choices[0].message.audio) {
+    const {
+      message: {
+        audio: { data, transcript },
+      },
+    } = response.choices[0] as any;
+
+    return {
+      audioData: data,
+      transcript,
+    };
+  }
+
+  const { choices } = response;
+  const { message } = choices[0];
+
+  return {
+    audioData: null,
+    transcript: message,
+  };
+};
+
 const getOpenAIResponse = async (
   messages: ChatCompletionMessageParam[]
 ): Promise<ChatCompletionMessage> => {
@@ -102,6 +169,29 @@ const getOpenAIResponse = async (
   const { message } = choices[0];
 
   return message;
+};
+
+const transcribeAudio = async (
+  base64Audio: string,
+  format: "mp3" | "wav" = "wav",
+  language: string = "en-US"
+): Promise<string> => {
+  const tmpFilePath = path.join(tmpdir(), `recording-${Date.now()}.${format}`);
+  fs.writeFileSync(
+    tmpFilePath,
+    new Uint8Array(Buffer.from(base64Audio, "base64"))
+  );
+
+  const transcription = await openai.audio.transcriptions.create({
+    file: fs.createReadStream(tmpFilePath),
+    model: "gpt-4o-mini-transcribe",
+    response_format: "text", // or json if you want timestamps
+    language: language.split("-")[0],
+  });
+
+  fs.unlinkSync(tmpFilePath); // cleanup
+
+  return transcription;
 };
 
 const triggerEvent = async (
@@ -289,4 +379,6 @@ export {
   triggerEvent,
   parseToolCall,
   handleToolCalls,
+  getOpenAIAudioResponse,
+  transcribeAudio,
 };

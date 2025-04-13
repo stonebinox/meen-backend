@@ -14,7 +14,7 @@ export const getPlaceSuggestion = async (input: string, location: string) => {
       return "No results found";
     }
   } catch (e) {
-    console.log("errx", e);
+    console.log(e);
     return "No results found";
   }
 };

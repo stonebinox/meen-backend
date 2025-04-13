@@ -64,6 +64,18 @@ const setStarLanguage = async (starLanguage: string, userId: string) => {
   );
 };
 
+const getStarLanguage = async (userId: string) => {
+  const user: IUser | null = await User.findOne({
+    _id: userId,
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user.starPreferences?.language || "en-US";
+};
+
 const setUserKnowledge = async (key: string, value: string, userId: string) => {
   await User.updateOne(
     {
@@ -84,4 +96,5 @@ export {
   setStarName,
   setStarLanguage,
   setUserKnowledge,
+  getStarLanguage,
 };

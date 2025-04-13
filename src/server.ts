@@ -11,6 +11,8 @@ connectDB();
 
 const app: Application = express();
 app.use(cors());
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
 // Middleware to parse JSON
 app.use(express.json());
