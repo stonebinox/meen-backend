@@ -74,11 +74,12 @@ router.post("/add", async (req: Request, res: Response) => {
       const newStarMessage: IStarMessage = new StarMessage({
         content: {
           role: "user",
-          content: `{
-            message: "${userMessage}",
+          content: JSON.stringify({
+            message: userMessage,
             event: "user",
-            userContext: "${JSON.stringify(userContext)}",
-          }`,
+            userContext,
+            promptVersion: process.env.PROMPT_VERSION,
+          }),
         },
         userId: user.id,
         source,
@@ -93,11 +94,12 @@ router.post("/add", async (req: Request, res: Response) => {
     if (user.starPreferences) {
       const starPreferenceMessage: ChatCompletionMessageParam = {
         role: "user",
-        content: `{
+        content: JSON.stringify({
           message: "",
           event: "customization",
-          eventData: ${user.starPreferences}
-        }`,
+          eventData: user.starPreferences,
+          promptVersion: process.env.PROMPT_VERSION,
+        }),
       };
 
       parsedMessages.push(starPreferenceMessage);

@@ -91,8 +91,11 @@ const getOpenAIResponse = async (
             speechInstructions: {
               type: "string",
             },
+            promptVersion: {
+              type: "string",
+            },
           },
-          required: ["message", "speechInstructions"],
+          required: ["message", "speechInstructions", "promptVersion"],
         },
       },
     },
@@ -113,11 +116,12 @@ const triggerEvent = async (
   const appTriggerEventMessage: IStarMessage = new StarMessage({
     content: {
       role: "user",
-      content: `{
+      content: JSON.stringify({
         message: "",
-        event: "${eventName}",
-        eventData: ${JSON.stringify(eventData)}
-      }`,
+        event: eventName,
+        eventData,
+        promptVersion: process.env.PROMPT_VERSION,
+      }),
     },
     userId,
     source,
