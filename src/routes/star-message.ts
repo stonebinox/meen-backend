@@ -50,8 +50,8 @@ router.post("/speak", async (req: Request, res: Response) => {
     };
 
     const parsedMessages = [
-      ...recentMessages.map((m) => m.content),
       systemMessage,
+      ...recentMessages.map((m) => m.content),
     ].reverse();
 
     const { audioData, transcript } = await getOpenAIAudioResponse(

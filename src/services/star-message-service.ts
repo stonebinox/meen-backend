@@ -25,7 +25,7 @@ const getRecentMessages = async (userId: string) => {
     userId,
   })
     .sort({ crtTs: -1 })
-    .limit(200);
+    .limit(100);
 
   // we need to remove the very first message IF it's a response to a tool call
   const earliestMessage = messages[messages.length - 1];
@@ -83,7 +83,7 @@ const getOpenAIAudioResponse = async (
       content: [
         {
           type: "text",
-          text: "The following is an audio message from the user.",
+          text: `The following is the audio message from the user following the rules of promptVersion: ${process.env.PROMPT_VERSION}:`,
         },
         {
           type: "input_audio",
@@ -96,11 +96,17 @@ const getOpenAIAudioResponse = async (
     },
   ];
 
+  console.log(
+    "finalMessages",
+    finalMessages[finalMessages.length - 1],
+    finalMessages[finalMessages.length - 2]
+  );
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini-audio-preview-2024-12-17",
     messages: finalMessages,
-    temperature: 0.7,
-    modalities: ["audio", "text"],
+    temperature: 0,
+    modalities: ["text", "audio"],
     audio: {
       format: "wav",
       voice: "nova",
@@ -108,6 +114,7 @@ const getOpenAIAudioResponse = async (
   });
 
   if (response.choices[0].message.audio) {
+    console.log("audiox");
     const {
       message: {
         audio: { data, transcript },
@@ -119,6 +126,8 @@ const getOpenAIAudioResponse = async (
       transcript,
     };
   }
+
+  console.log("messagex");
 
   const { choices } = response;
   const { message } = choices[0];
