@@ -24,11 +24,13 @@ const getRecentMessages = async (userId: string) => {
     .sort({ crtTs: -1 })
     .limit(200);
 
-  // we need to remove the very first message IF it's a response to a tool call
-  const earliestMessage = messages[messages.length - 1];
+  if (messages.length > 0) {
+    // we need to remove the very first message IF it's a response to a tool call
+    const earliestMessage = messages[messages.length - 1];
 
-  if (earliestMessage.content.role === "tool") {
-    messages.splice(messages.length - 1, 1);
+    if (earliestMessage.content.role === "tool") {
+      messages.splice(messages.length - 1, 1);
+    }
   }
 
   return messages;
@@ -46,7 +48,10 @@ const initConversation = async (
     content: firstMessage,
   };
 
-  const response: ChatCompletionMessage = await getOpenAIResponse([aiMessage]);
+  const response: ChatCompletionMessage = await getOpenAIResponse(
+    [aiMessage],
+    true
+  );
   const starMessage: IStarMessage = new StarMessage({
     content: aiMessage,
     userId: user.id,
@@ -63,12 +68,13 @@ const initConversation = async (
 };
 
 const getOpenAIResponse = async (
-  messages: ChatCompletionMessageParam[]
+  messages: ChatCompletionMessageParam[],
+  init: boolean = false
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
     model: "gpt-4o-mini",
-    tools,
+    tools: init ? [] : tools,
     response_format: {
       type: "json_schema",
       json_schema: {
