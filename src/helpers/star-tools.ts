@@ -122,4 +122,27 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "goToDestination",
+      description: `Call this function to navigate to a destination. The user will have specified a destination based on what you suggest in previous tool calls. This will be in the "input" parameter. The "location" parameter will contain the coordinates of the user's current location in "latitude,longitude" format. This information is present in the "userContext" property of the most recent user message. This needs to be coordinates ONLY. The response will be used by Google Maps to start navigation to the destination.`,
+      parameters: {
+        type: "object",
+        properties: {
+          input: {
+            type: "string",
+            description:
+              "The destination you think the user wants to go to. This will be the same as the 'input' parameter in the 'findLocation' function based on what the user confirms is the right destination.",
+          },
+          location: {
+            type: "string",
+            description: `Coordinates of their current location in "latitude,longitude" format. This information is present in the "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
+          },
+        },
+        additionalProperties: false,
+        required: ["input", "location"],
+      },
+    },
+  },
 ];

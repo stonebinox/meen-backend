@@ -200,6 +200,14 @@ const parseToolCall = async (
       ); // we let the AI read it out to the user first
 
       return;
+    case "goToDestination":
+      const { input: destinationInput, location: userLocation } =
+        JSON.parse(args);
+
+      return {
+        destinationInput,
+        userLocation,
+      };
   }
 };
 
