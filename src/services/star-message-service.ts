@@ -9,7 +9,12 @@ import { generateInitialStarInstruction } from "../helpers/generate-initial-star
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
-import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
+import {
+  deleteUserKnowledge,
+  setStarLanguage,
+  setStarName,
+  setUserKnowledge,
+} from "./user-service";
 import { searchMusic } from "./youtube-service";
 import { getPlaceSuggestion } from "./google-maps-service";
 
@@ -186,6 +191,11 @@ const parseToolCall = async (
     case "updateUserKnowledge":
       const { key, value } = JSON.parse(args);
       await updateUserKnowledge({ key, value, userId, source });
+
+      return;
+    case "deleteUserKnowledge":
+      const { key: deleteKey } = JSON.parse(args);
+      await deleteUserKnowledge(deleteKey, userId);
 
       return;
     case "findLocation":

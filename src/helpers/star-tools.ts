@@ -103,6 +103,26 @@ export const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "deleteUserKnowledge",
+      description:
+        "Call this function to delete specific user knowledge that is no longer relevant or has changed. This helps keep the user profile accurate and up-to-date. Use this when the user explicitly asks you to forget something or when you determine that the information is outdated or incorrect.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: {
+            type: "string",
+            description:
+              "The category or aspect of the user’s profile to delete (e.g., 'favoriteMusic', 'dietaryPreference').",
+          },
+        },
+        additionalProperties: false,
+        required: ["key"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "findLocation",
       description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input in various formats, such as an address, business name, or general location. Add additional context like city names or other relevant details to improve the search results in the "location" parameter. Your response will be used by Google Maps Autocomplete API to grab a list of possible suggestions within a given radius based on user input and base location. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions. If suggestions are found, only mention the localities and not the exact addresses. If no suggestions are found, you can inform the user accordingly.`,
       parameters: {

@@ -115,7 +115,11 @@ export const generateInitialStarInstruction = async (
     months[date.getMonth()]
   } / ${date.getFullYear()}
       - **Day**: ${days[date.getDay()]}
-      - **Current location**: Bangalore, Karnataka, India
+      - **Current location**: ${
+        user.currentLocation
+          ? `${user.currentLocation.latitude},${user.currentLocation.longitude}`
+          : "Bangalore, Karnataka, India"
+      }
       - **Car Color**: ${carColor}
       - **Current software theme**: ${carColor}
       - **Current conversation Language**: ${

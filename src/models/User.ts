@@ -10,6 +10,11 @@ export interface IUser extends Document {
   updatedTs: Date | null;
   delTs: Date | null;
   verified: boolean;
+  currentLocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  };
   starPreferences?: {
     name?: string;
     language?: string;
@@ -60,6 +65,20 @@ const UserSchema: Schema = new Schema({
   verified: {
     type: Boolean,
     default: false,
+  },
+  currentLocation: {
+    latitude: {
+      type: Number,
+      required: false,
+    },
+    longitude: {
+      type: Number,
+      required: false,
+    },
+    accuracy: {
+      type: Number,
+      required: false,
+    },
   },
   starPreferences: {
     name: {
