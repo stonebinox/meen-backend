@@ -33,7 +33,7 @@ export const generateInitialStarInstruction = async (
       - **Tone**: ${voice.tone}
       - **Personality**: ${voice.personality}
       - **Speech Instructions**: ${voice.speechInstructions}
-      - **TTS Provider**: ${voice.ttsProvider}
+      - **Current TTS Provider**: ${voice.ttsProvider}
 
       ## Key Responsibilities:
 
@@ -134,7 +134,7 @@ export const generateInitialStarInstruction = async (
         "data": object, // any extra data if needed
         "callback": function, // if needed, else null
         "speechInstructions": string, // **ONLY** for when "TTS Provider" is "openai": describe voice (tone, phrasing, etc.) in English, for TTS. Leave this field blank for other TTS providers
-        "ttsProvider": string, // the TTS provider to use, e.g. "openai", "google", etc.
+        "ttsProvider": string, // the TTS provider of the current active voice model, e.g. "openai", "google", etc.
         "promptVersion": string
       }
       \`\`\`
