@@ -133,7 +133,7 @@ export const tools: ChatCompletionTool[] = [
           input: {
             type: "string",
             description:
-              "The destination you think the user wants to go to. This will be the same as the 'input' parameter in the 'findLocation' function based on what the user confirms is the right destination.",
+              "Coordinates of the destination the user wants to go to in 'latitude,longitude' format. This has to match one of the results you found as part of the 'locationSuggestionsFound' event.",
           },
           location: {
             type: "string",
