@@ -206,9 +206,9 @@ router.post("/init", async (req: Request, res: Response) => {
       await triggerEvent(
         "app",
         {
-          appLaunched: true,
+          userDetected: true,
           description:
-            "This means that the user is initiating a conversation with you via the OS. This is a cue for you to initiate conversation with the user.",
+            "This means that the car has detected the user and the auxillary battery systems have been powered on along with the OS. You can use this as a cue to initiate conversation with the user.",
         },
         user.id,
         source
