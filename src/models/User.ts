@@ -13,6 +13,7 @@ export interface IUser extends Document {
   starPreferences?: {
     name?: string;
     language?: string;
+    voiceId?: string;
     userData?: {
       [key: string]: string;
     };
@@ -68,6 +69,10 @@ const UserSchema: Schema = new Schema({
     language: {
       type: String,
       default: "en-US",
+    },
+    voiceId: {
+      type: String,
+      default: null,
     },
     userData: {
       type: Map,

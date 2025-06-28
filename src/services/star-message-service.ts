@@ -41,7 +41,7 @@ const initConversation = async (
   carColor: string,
   source: string
 ) => {
-  const firstMessage = generateInitialStarInstruction(user, carColor);
+  const firstMessage = await generateInitialStarInstruction(user, carColor);
 
   const aiMessage: ChatCompletionMessageParam = {
     role: "system",

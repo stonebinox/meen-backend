@@ -105,7 +105,7 @@ router.post("/add", async (req: Request, res: Response) => {
       parsedMessages.push(starPreferenceMessage);
     }
 
-    const systemMessageContent = generateInitialStarInstruction(
+    const systemMessageContent = await generateInitialStarInstruction(
       user,
       car?.color || "Unknown"
     );
