@@ -20,6 +20,10 @@ app.use("/api/car", require("./routes/car").default);
 app.use("/api/star-message", require("./routes/star-message").default);
 app.use("/api/voice", require("./routes/voice").default);
 
+app.get("/healthcheck", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Service is healthy" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
