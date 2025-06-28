@@ -2,7 +2,7 @@ export const getPlaceSuggestion = async (input: string, location: string) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=${encodeURIComponent(
       input
-    )}&location=${encodeURIComponent(location)}&radius=100000&key=${
+    )}&location=${encodeURIComponent(location)}&radius=10000&key=${
       process.env.GOOGLE_MAPS_API_KEY
     }`;
     const response = await fetch(url);
