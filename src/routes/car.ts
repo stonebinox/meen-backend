@@ -82,7 +82,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     let token = null;
 
-    if (car.verifiedTs) {
+    if (car.verifiedTs && !req.query.noAuth) {
       const { userId } = car;
       token = generateAuthToken(userId);
     }
