@@ -103,10 +103,28 @@ export const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "deleteUserKnowledge",
+      description:
+        "Call this function to delete specific user knowledge that is no longer relevant or has changed. This helps keep the user profile accurate and up-to-date. Use this when the user explicitly asks you to forget something or when you determine that the information is outdated or incorrect.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: {
+            type: "string",
+            description:
+              "The category or aspect of the user’s profile to delete (e.g., 'favoriteMusic', 'dietaryPreference').",
+          },
+        },
+        additionalProperties: false,
+        required: ["key"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "findLocation",
-      description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input as an address, name, or general location. You should add any additional context like city name or other relevant details to improve the search results in the "input" parameter. Your response will be used by Google Maps API to grab a list of possible suggestions within a given radius based on user "input" and base "location" coordinates. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions.
-      
-      When suggestions are found, give the user a list of options in a human friendly format to choose from. Don't read out URLs, email addresses, and phone numbers of any kind.`,
+      description: `Call this function to search for a place of interest when the user provides a destination or location they want to drive to. The user may provide their input in various formats, such as an address, business name, or general location. Add additional context like city names or other relevant details to improve the search results in the "location" parameter. Your response will be used by Google Maps Autocomplete API to grab a list of possible suggestions within a given radius based on user input and base location. You will receive the response from Google's API via a user event called "locationSuggestionsFound" which you can use to let the user know the suggestions. If suggestions are found, only mention the localities and not the exact addresses. If no suggestions are found, you can inform the user accordingly.`,
       parameters: {
         type: "object",
         properties: {
@@ -116,7 +134,7 @@ export const tools: ChatCompletionTool[] = [
           },
           location: {
             type: "string",
-            description: `Coordinates of in "latitude,longitude" format. This information is present in "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
+            description: `Coordinates of their current location in "latitude,longitude" format. This information is present in "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
           },
         },
         additionalProperties: false,
@@ -127,18 +145,23 @@ export const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
-      name: "navigateToLocation",
-      description: `Call this function only when the user confirms a location from the list of suggestions provided in the "locationSuggestionsFound" event from the most recent entry in the message history. If suggestion were found, use the "place_id" from the suggestions list to fetch the selected location from the list of suggestions and provide the coordinates to navigate. Otherwise, tell the user that no location was found.`,
+      name: "goToDestination",
+      description: `Call this function to navigate to a destination. The user will have specified a destination based on what you suggest in previous tool calls. This will be in the "input" parameter. The "location" parameter will contain the coordinates of the user's current location in "latitude,longitude" format. This information is present in the "userContext" property of the most recent user message. This needs to be coordinates ONLY. The response will be used by Google Maps to start navigation to the destination.`,
       parameters: {
         type: "object",
         properties: {
-          placeId: {
+          input: {
             type: "string",
-            description: "The unique identifier of the selected location.",
+            description:
+              "Coordinates of the destination the user wants to go to in 'latitude,longitude' format. This has to match one of the results you found as part of the 'locationSuggestionsFound' event.",
+          },
+          location: {
+            type: "string",
+            description: `Coordinates of their current location in "latitude,longitude" format. This information is present in the "userContext" property of the most recent user message. This needs to be coordinates ONLY.`,
           },
         },
         additionalProperties: false,
-        required: ["placeId"],
+        required: ["input", "location"],
       },
     },
   },

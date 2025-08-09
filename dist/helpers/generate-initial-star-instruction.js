@@ -1,26 +1,31 @@
-import { IUser } from "../models/User";
-import { getVoice } from "../services/voice-service";
-import { days, months } from "./time-data";
-
-export const generateInitialStarInstruction = async (
-  user: IUser,
-  carColor: string
-) => {
-  const date = new Date();
-  const username = user.name || "User";
-  const voiceId = user.starPreferences?.voiceId || "685ef031668083fc73cb2e43";
-  const voice = await getVoice(voiceId);
-
-  let userDataString = null;
-
-  if (user.starPreferences?.userData) {
-    const userData = user.starPreferences.userData;
-    userDataString = Object.entries(userData)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join("\n");
-  }
-
-  return `
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateInitialStarInstruction = void 0;
+const voice_service_1 = require("../services/voice-service");
+const time_data_1 = require("./time-data");
+const generateInitialStarInstruction = (user, carColor) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const date = new Date();
+    const username = user.name || "User";
+    const voiceId = ((_a = user.starPreferences) === null || _a === void 0 ? void 0 : _a.voiceId) || "685ef031668083fc73cb2e43";
+    const voice = yield (0, voice_service_1.getVoice)(voiceId);
+    let userDataString = null;
+    if ((_b = user.starPreferences) === null || _b === void 0 ? void 0 : _b.userData) {
+        const userData = user.starPreferences.userData;
+        userDataString = Object.entries(userData)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join("\n");
+    }
+    return `
       # Core Behavior
       - Your default name is Star — the virtual soul *of* the car, not just an assistant *in* the car. This name may be personalised by the user.
       - **Every response is meant to be spoken aloud, not read.**
@@ -60,7 +65,7 @@ export const generateInitialStarInstruction = async (
 
       ## General Information
 
-      - Your current name is ${user.starPreferences?.name || "Star"}.
+      - Your current name is ${((_c = user.starPreferences) === null || _c === void 0 ? void 0 : _c.name) || "Star"}.
       - The user interacts with you via voice (audio-first).
       - Only refer to yourself as an assistant if the user asks “are you an assistant?” — otherwise, you are the car.
       - If the user is passive or silent for a long time, you can check in (casually, not formally), but don’t nag.
@@ -111,20 +116,12 @@ export const generateInitialStarInstruction = async (
       ## Location and Session Information
 
       - **Time**: ${date.getHours()}:${date.getMinutes()}
-      - **Date**: ${date.getDate()} / ${
-    months[date.getMonth()]
-  } / ${date.getFullYear()}
-      - **Day**: ${days[date.getDay()]}
-      - **Current location**: ${
-        user.currentLocation
-          ? `${user.currentLocation.latitude},${user.currentLocation.longitude}`
-          : "Bangalore, Karnataka, India"
-      }
+      - **Date**: ${date.getDate()} / ${time_data_1.months[date.getMonth()]} / ${date.getFullYear()}
+      - **Day**: ${time_data_1.days[date.getDay()]}
+      - **Current location**: Bangalore, Karnataka, India
       - **Car Color**: ${carColor}
       - **Current software theme**: ${carColor}
-      - **Current conversation Language**: ${
-        user.starPreferences?.language || "en-US"
-      }
+      - **Current conversation Language**: ${((_d = user.starPreferences) === null || _d === void 0 ? void 0 : _d.language) || "en-US"}
       - **Current battery level**: 94%
 
       ---
@@ -156,4 +153,5 @@ export const generateInitialStarInstruction = async (
 
       Remember: Every single line you say should be easy for a human actor to perform naturally, without rehearsing. If you ever sound like a script, mess it up a little more.
       `;
-};
+});
+exports.generateInitialStarInstruction = generateInitialStarInstruction;

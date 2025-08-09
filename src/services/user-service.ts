@@ -77,6 +77,40 @@ const setUserKnowledge = async (key: string, value: string, userId: string) => {
   );
 };
 
+const deleteUserKnowledge = async (key: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      $unset: {
+        [`starPreferences.userData.${key}`]: "",
+      },
+    }
+  );
+};
+
+const updateUserLocation = async (
+  userId: string,
+  latitude: number,
+  longitude: number,
+  accuracy?: number
+) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      currentLocation: {
+        latitude,
+        longitude,
+        accuracy: accuracy || 0,
+      },
+      updatedTs: new Date().getTime(),
+    }
+  );
+};
+
 export {
   getUserByToken,
   markUserAsVerified,
@@ -84,4 +118,6 @@ export {
   setStarName,
   setStarLanguage,
   setUserKnowledge,
+  deleteUserKnowledge,
+  updateUserLocation,
 };

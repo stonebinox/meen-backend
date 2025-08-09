@@ -9,9 +9,14 @@ import { generateInitialStarInstruction } from "../helpers/generate-initial-star
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
-import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
+import {
+  deleteUserKnowledge,
+  setStarLanguage,
+  setStarName,
+  setUserKnowledge,
+} from "./user-service";
 import { searchMusic } from "./youtube-service";
-import { getPlaceDetails, getPlaceSuggestion } from "./google-maps-service";
+import { getPlaceSuggestion } from "./google-maps-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -24,11 +29,13 @@ const getRecentMessages = async (userId: string) => {
     .sort({ crtTs: -1 })
     .limit(200);
 
-  // we need to remove the very first message IF it's a response to a tool call
-  const earliestMessage = messages[messages.length - 1];
+  if (messages.length > 0) {
+    // we need to remove the very first message IF it's a response to a tool call
+    const earliestMessage = messages[messages.length - 1];
 
-  if (earliestMessage.content.role === "tool") {
-    messages.splice(messages.length - 1, 1);
+    if (earliestMessage.content.role === "tool") {
+      messages.splice(messages.length - 1, 1);
+    }
   }
 
   return messages;
@@ -39,14 +46,17 @@ const initConversation = async (
   carColor: string,
   source: string
 ) => {
-  const firstMessage = generateInitialStarInstruction(user, carColor);
+  const firstMessage = await generateInitialStarInstruction(user, carColor);
 
   const aiMessage: ChatCompletionMessageParam = {
     role: "system",
     content: firstMessage,
   };
 
-  const response: ChatCompletionMessage = await getOpenAIResponse([aiMessage]);
+  const response: ChatCompletionMessage = await getOpenAIResponse(
+    [aiMessage],
+    true
+  );
   const starMessage: IStarMessage = new StarMessage({
     content: aiMessage,
     userId: user.id,
@@ -63,12 +73,43 @@ const initConversation = async (
 };
 
 const getOpenAIResponse = async (
-  messages: ChatCompletionMessageParam[]
+  messages: ChatCompletionMessageParam[],
+  init: boolean = false
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
     model: "gpt-4o-mini",
-    tools,
+    tools: init ? [] : tools,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "response",
+        description: "Response to user",
+        schema: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+            },
+            data: {
+              type: "object",
+              default: {},
+            },
+            callback: {
+              type: "string",
+              default: null,
+            },
+            speechInstructions: {
+              type: "string",
+            },
+            promptVersion: {
+              type: "string",
+            },
+          },
+          required: ["message", "speechInstructions", "promptVersion"],
+        },
+      },
+    },
   });
 
   const { choices } = response;
@@ -86,11 +127,12 @@ const triggerEvent = async (
   const appTriggerEventMessage: IStarMessage = new StarMessage({
     content: {
       role: "user",
-      content: `{
+      content: JSON.stringify({
         message: "",
-        event: "${eventName}",
-        eventData: ${JSON.stringify(eventData)}
-      }`,
+        event: eventName,
+        eventData,
+        promptVersion: process.env.PROMPT_VERSION,
+      }),
     },
     userId,
     source,
@@ -151,6 +193,11 @@ const parseToolCall = async (
       await updateUserKnowledge({ key, value, userId, source });
 
       return;
+    case "deleteUserKnowledge":
+      const { key: deleteKey } = JSON.parse(args);
+      await deleteUserKnowledge(deleteKey, userId);
+
+      return;
     case "findLocation":
       const { input, location } = JSON.parse(args);
       await triggerEvent("findLocation", { input, location }, userId, source); // we only log this
@@ -163,20 +210,13 @@ const parseToolCall = async (
       ); // we let the AI read it out to the user first
 
       return;
-    case "navigateToLocation":
-      const { placeId } = JSON.parse(args);
-      await triggerEvent("getPlaceDetails", { placeId }, userId, source);
-      const place = await getPlaceDetails(placeId);
-      await triggerEvent("locationFound", { place }, userId, source);
-
-      if (place === "Location not found") {
-        return {
-          location: null,
-        };
-      }
+    case "goToDestination":
+      const { input: destinationInput, location: userLocation } =
+        JSON.parse(args);
 
       return {
-        location: place,
+        destinationInput,
+        userLocation,
       };
   }
 };
