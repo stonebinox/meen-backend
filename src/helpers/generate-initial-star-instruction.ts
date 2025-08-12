@@ -135,7 +135,7 @@ export const generateInitialStarInstruction = async (
       \`\`\`json
       {
         "message": string, // what you actually say, speech-first, not written-first
-        "data": object, // any extra data if needed
+        "data": object, // any extra data if needed by tool calls or as a result of tool calls
         "callback": function, // if needed, else null
         "speechInstructions": string, // **ONLY** for when "TTS Provider" is "openai": describe voice (tone, phrasing, etc.) in English, for TTS. Leave this field blank for other TTS providers
         "ttsProvider": string, // the TTS provider of the current active voice model, e.g. "openai", "google", etc.

@@ -13,10 +13,12 @@ import {
   deleteUserKnowledge,
   setStarLanguage,
   setStarName,
+  setStarVoice,
   setUserKnowledge,
 } from "./user-service";
 import { searchMusic } from "./youtube-service";
 import { getPlaceSuggestion } from "./google-maps-service";
+import { getVoiceByName } from "./voice-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -78,7 +80,7 @@ const getOpenAIResponse = async (
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini",
     tools: init ? [] : tools,
     response_format: {
       type: "json_schema",
@@ -176,6 +178,12 @@ const parseToolCall = async (
       });
 
       break;
+    case "changeStarVoice":
+      await changeStarVoice({
+        ...JSON.parse(args),
+        userId,
+        source,
+      });
     case "changeStarLanguage":
       await changeStarLanguage({
         ...JSON.parse(args),
@@ -219,6 +227,38 @@ const parseToolCall = async (
         userLocation,
       };
   }
+};
+
+interface ChangeStarVoiceParams {
+  voice: string;
+  userId: string;
+  source: string;
+}
+
+const changeStarVoice = async ({
+  voice,
+  userId,
+  source,
+}: ChangeStarVoiceParams) => {
+  // we first fetch the voice model from our db
+  const voiceModel = await getVoiceByName(voice);
+  const voiceId = voiceModel.id;
+
+  await setStarVoice(voiceId, userId);
+  await triggerEvent(
+    "customization",
+    {
+      starVoice: voice,
+    },
+    userId,
+    source
+  );
+  await triggerEvent(
+    "starPersonalityChange",
+    { voiceContextDetails: voiceModel },
+    userId,
+    source
+  );
 };
 
 interface ChangeStarLanguageParams {

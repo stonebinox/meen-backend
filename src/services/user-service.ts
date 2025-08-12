@@ -53,6 +53,17 @@ const setStarName = async (starName: string, userId: string) => {
   );
 };
 
+const setStarVoice = async (voiceId: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      "starPreferences.voiceId": voiceId,
+    }
+  );
+};
+
 const setStarLanguage = async (starLanguage: string, userId: string) => {
   await User.updateOne(
     {
@@ -120,4 +131,5 @@ export {
   setUserKnowledge,
   deleteUserKnowledge,
   updateUserLocation,
+  setStarVoice,
 };

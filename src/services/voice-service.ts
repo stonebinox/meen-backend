@@ -33,4 +33,14 @@ const getVoice = async (id: string) => {
   return voice;
 };
 
-export { addVoice, getVoices, getVoice };
+const getVoiceByName = async (name: string) => {
+  const voice = await Voice.findOne({ name, delTs: null });
+
+  if (!voice) {
+    throw new Error("Voice not found");
+  }
+
+  return voice;
+};
+
+export { addVoice, getVoices, getVoice, getVoiceByName };

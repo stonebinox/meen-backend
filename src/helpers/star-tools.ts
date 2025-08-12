@@ -23,6 +23,25 @@ export const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "changeStarVoice",
+      description:
+        "To change Star's current voice model. Call this when the user wants to switch to a different voice. Available options are 'Tara' and 'Sirius'. This changes Star's personality.",
+      parameters: {
+        type: "object",
+        properties: {
+          voice: {
+            type: "string",
+            description: "The name of the voice the user wants to switch to.",
+          },
+        },
+        additionalProperties: false,
+        required: ["voiceName"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "changeStarLanguage",
       description:
         "To change Star's default language of communication. Call this when the user wants to speak to Star in a different language",
