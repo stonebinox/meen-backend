@@ -80,7 +80,7 @@ const getOpenAIResponse = async (
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     tools: init ? [] : tools,
     response_format: {
       type: "json_schema",
