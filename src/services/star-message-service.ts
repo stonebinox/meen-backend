@@ -80,7 +80,7 @@ const getOpenAIResponse = async (
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
-    model: "gpt-4o-mini",
+    model: "gpt-5",
     tools: init ? [] : tools,
     response_format: {
       type: "json_schema",
@@ -245,14 +245,6 @@ const changeStarVoice = async ({
   const voiceId = voiceModel.id;
 
   await setStarVoice(voiceId, userId);
-  await triggerEvent(
-    "customization",
-    {
-      starVoice: voice,
-    },
-    userId,
-    source
-  );
   await triggerEvent(
     "starPersonalityChange",
     { voiceContextDetails: voiceModel },
