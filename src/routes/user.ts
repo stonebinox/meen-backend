@@ -4,6 +4,7 @@ import User, { IUser } from "../models/User";
 import {
   markCarAsVerified,
   markUserAsVerified,
+  updateUserLocation,
 } from "../services/user-service";
 import { checkAuthToken, generateAuthToken } from "../services/token-service";
 import { generateOtp } from "../helpers/generate-otp";
@@ -155,6 +156,34 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     return res.status(200).send({ user });
+  } catch (e) {
+    console.log(e);
+    res.status(500).send({ error: "Server error" });
+  }
+});
+
+router.post("/update-location", async (req: Request, res: Response) => {
+  try {
+    const user: IUser | null = await checkAuthToken(req);
+    if (!user) {
+      return res.status(401).send({ error: "Unauthorized" });
+    }
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (
+      typeof latitude !== "number" ||
+      typeof longitude !== "number" ||
+      (accuracy && typeof accuracy !== "number")
+    ) {
+      return res.status(400).send({ error: "Invalid location data" });
+    }
+
+    await updateUserLocation(
+      user._id as string,
+      latitude,
+      longitude,
+      accuracy || undefined
+    );
   } catch (e) {
     console.log(e);
     res.status(500).send({ error: "Server error" });

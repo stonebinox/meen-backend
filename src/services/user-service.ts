@@ -53,6 +53,17 @@ const setStarName = async (starName: string, userId: string) => {
   );
 };
 
+const setStarVoice = async (voiceId: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      "starPreferences.voiceId": voiceId,
+    }
+  );
+};
+
 const setStarLanguage = async (starLanguage: string, userId: string) => {
   await User.updateOne(
     {
@@ -62,18 +73,6 @@ const setStarLanguage = async (starLanguage: string, userId: string) => {
       "starPreferences.language": starLanguage,
     }
   );
-};
-
-const getStarLanguage = async (userId: string) => {
-  const user: IUser | null = await User.findOne({
-    _id: userId,
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  return user.starPreferences?.language || "en-US";
 };
 
 const setUserKnowledge = async (key: string, value: string, userId: string) => {
@@ -89,6 +88,40 @@ const setUserKnowledge = async (key: string, value: string, userId: string) => {
   );
 };
 
+const deleteUserKnowledge = async (key: string, userId: string) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      $unset: {
+        [`starPreferences.userData.${key}`]: "",
+      },
+    }
+  );
+};
+
+const updateUserLocation = async (
+  userId: string,
+  latitude: number,
+  longitude: number,
+  accuracy?: number
+) => {
+  await User.updateOne(
+    {
+      _id: userId,
+    },
+    {
+      currentLocation: {
+        latitude,
+        longitude,
+        accuracy: accuracy || 0,
+      },
+      updatedTs: new Date().getTime(),
+    }
+  );
+};
+
 export {
   getUserByToken,
   markUserAsVerified,
@@ -96,5 +129,7 @@ export {
   setStarName,
   setStarLanguage,
   setUserKnowledge,
-  getStarLanguage,
+  deleteUserKnowledge,
+  updateUserLocation,
+  setStarVoice,
 };

@@ -12,9 +12,16 @@ import { generateInitialStarInstruction } from "../helpers/generate-initial-star
 import StarMessage, { IStarMessage } from "../models/StarMessage";
 import { IUser } from "../models/User";
 import { tools } from "../helpers/star-tools";
-import { setStarLanguage, setStarName, setUserKnowledge } from "./user-service";
+import {
+  deleteUserKnowledge,
+  setStarLanguage,
+  setStarName,
+  setStarVoice,
+  setUserKnowledge,
+} from "./user-service";
 import { searchMusic } from "./youtube-service";
 import { getPlaceSuggestion } from "./google-maps-service";
+import { getVoiceByName } from "./voice-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -27,11 +34,13 @@ const getRecentMessages = async (userId: string) => {
     .sort({ crtTs: -1 })
     .limit(100);
 
-  // we need to remove the very first message IF it's a response to a tool call
-  const earliestMessage = messages[messages.length - 1];
+  if (messages.length > 0) {
+    // we need to remove the very first message IF it's a response to a tool call
+    const earliestMessage = messages[messages.length - 1];
 
-  if (earliestMessage.content.role === "tool") {
-    messages.splice(messages.length - 1, 1);
+    if (earliestMessage.content.role === "tool") {
+      messages.splice(messages.length - 1, 1);
+    }
   }
 
   return messages;
@@ -42,14 +51,17 @@ const initConversation = async (
   carColor: string,
   source: string
 ) => {
-  const firstMessage = generateInitialStarInstruction(user, carColor);
+  const firstMessage = await generateInitialStarInstruction(user, carColor);
 
   const aiMessage: ChatCompletionMessageParam = {
     role: "system",
     content: firstMessage,
   };
 
-  const response: ChatCompletionMessage = await getOpenAIResponse([aiMessage]);
+  const response: ChatCompletionMessage = await getOpenAIResponse(
+    [aiMessage],
+    true
+  );
   const starMessage: IStarMessage = new StarMessage({
     content: aiMessage,
     userId: user.id,
@@ -139,12 +151,13 @@ const getOpenAIAudioResponse = async (
 };
 
 const getOpenAIResponse = async (
-  messages: ChatCompletionMessageParam[]
+  messages: ChatCompletionMessageParam[],
+  init: boolean = false
 ): Promise<ChatCompletionMessage> => {
   const response = await openai.chat.completions.create({
     messages,
-    model: "gpt-4o-mini",
-    tools,
+    model: "gpt-5",
+    tools: init ? [] : tools,
     response_format: {
       type: "json_schema",
       json_schema: {
@@ -167,8 +180,11 @@ const getOpenAIResponse = async (
             speechInstructions: {
               type: "string",
             },
+            promptVersion: {
+              type: "string",
+            },
           },
-          required: ["message", "speechInstructions"],
+          required: ["message", "speechInstructions", "promptVersion"],
         },
       },
     },
@@ -212,11 +228,12 @@ const triggerEvent = async (
   const appTriggerEventMessage: IStarMessage = new StarMessage({
     content: {
       role: "user",
-      content: `{
+      content: JSON.stringify({
         message: "",
-        event: "${eventName}",
-        eventData: ${JSON.stringify(eventData)}
-      }`,
+        event: eventName,
+        eventData,
+        promptVersion: process.env.PROMPT_VERSION,
+      }),
     },
     userId,
     source,
@@ -260,6 +277,12 @@ const parseToolCall = async (
       });
 
       break;
+    case "changeStarVoice":
+      await changeStarVoice({
+        ...JSON.parse(args),
+        userId,
+        source,
+      });
     case "changeStarLanguage":
       await changeStarLanguage({
         ...JSON.parse(args),
@@ -277,6 +300,11 @@ const parseToolCall = async (
       await updateUserKnowledge({ key, value, userId, source });
 
       return;
+    case "deleteUserKnowledge":
+      const { key: deleteKey } = JSON.parse(args);
+      await deleteUserKnowledge(deleteKey, userId);
+
+      return;
     case "findLocation":
       const { input, location } = JSON.parse(args);
       await triggerEvent("findLocation", { input, location }, userId, source); // we only log this
@@ -289,7 +317,39 @@ const parseToolCall = async (
       ); // we let the AI read it out to the user first
 
       return;
+    case "goToDestination":
+      const { input: destinationInput, location: userLocation } =
+        JSON.parse(args);
+
+      return {
+        destinationInput,
+        userLocation,
+      };
   }
+};
+
+interface ChangeStarVoiceParams {
+  voice: string;
+  userId: string;
+  source: string;
+}
+
+const changeStarVoice = async ({
+  voice,
+  userId,
+  source,
+}: ChangeStarVoiceParams) => {
+  // we first fetch the voice model from our db
+  const voiceModel = await getVoiceByName(voice);
+  const voiceId = voiceModel.id;
+
+  await setStarVoice(voiceId, userId);
+  await triggerEvent(
+    "starPersonalityChange",
+    { voiceContextDetails: voiceModel },
+    userId,
+    source
+  );
 };
 
 interface ChangeStarLanguageParams {
