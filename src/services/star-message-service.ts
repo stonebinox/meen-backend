@@ -108,20 +108,13 @@ const getOpenAIAudioResponse = async (
     },
   ];
 
-  console.log(
-    "finalMessages",
-    finalMessages[finalMessages.length - 1],
-    finalMessages[finalMessages.length - 2]
-  );
-
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini-audio-preview-2024-12-17",
+    model: "gpt-4o-realtime-preview-2025-06-03",
     messages: finalMessages,
-    temperature: 0,
     modalities: ["text", "audio"],
     audio: {
       format: "wav",
-      voice: "nova",
+      voice: "shimmer",
     },
   });
 

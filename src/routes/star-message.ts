@@ -1,7 +1,9 @@
 import express, { Request, Response } from "express";
 import { ChatCompletionMessageParam } from "openai/resources";
+import multer from "multer";
 import fs from "fs";
-import path from "path";
+import FormData from "form-data";
+import nodeFetch from "node-fetch";
 
 import { checkAuthToken } from "../services/token-service";
 import { IUser } from "../models/User";
@@ -13,103 +15,15 @@ import {
   handleToolCalls,
   initConversation,
   parseToolCall,
-  transcribeAudio,
   triggerEvent,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
-import { convertM4ABase64ToWavBase64 } from "../helpers/convert-audio";
-import { getStarLanguage } from "../services/user-service";
 
 const router = express.Router();
 
-router.post("/speak", async (req: Request, res: Response) => {
-  try {
-    const user = await checkAuthToken(req);
-    if (!user) return res.status(401).send({ error: "Unauthorized" });
-
-    const { sourceId, context: userContext } = req.body;
-    const audioBase64 = req.body.audioBase64; // or req.file.path if using multer
-    const wavBase64 = await convertM4ABase64ToWavBase64(audioBase64);
-    const format: "wav" | "mp3" = req.body.audioFormat || "wav"; // default to m4a if not provided
-
-    if (!sourceId || !audioBase64) {
-      return res.status(400).send({ error: "Missing source or audio file" });
-    }
-
-    const recentMessages = await getRecentMessages(user.id);
-    const car = await getCarById(sourceId);
-    const systemMessageContent = generateInitialStarInstruction(
-      user,
-      car?.color || "Unknown"
-    );
-
-    const systemMessage: ChatCompletionMessageParam = {
-      role: "system",
-      content: systemMessageContent,
-    };
-
-    const parsedMessages = [
-      systemMessage,
-      ...recentMessages.map((m) => m.content),
-    ].reverse();
-
-    const { audioData, transcript } = await getOpenAIAudioResponse(
-      parsedMessages,
-      wavBase64,
-      format
-    );
-
-    res.status(200).send({
-      message: {
-        audio: audioData,
-        transcript,
-      },
-    });
-
-    const starLanguage = await getStarLanguage(user.id);
-    const userTranscript = await transcribeAudio(
-      wavBase64,
-      format,
-      starLanguage
-    );
-    const newStarMessage: IStarMessage = new StarMessage({
-      content: {
-        role: "user",
-        content: JSON.stringify({
-          message: userTranscript,
-          event: "user",
-          userContext,
-          promptVersion: process.env.PROMPT_VERSION,
-        }),
-      },
-      userId: user.id,
-      source: sourceId,
-    });
-
-    await newStarMessage.save();
-
-    const assistantMessage: IStarMessage = new StarMessage({
-      content: audioData
-        ? {
-            role: "assistant",
-            content: JSON.stringify({
-              message: transcript,
-              data: {},
-              callback: null,
-              promptVersion: process.env.PROMPT_VERSION,
-            }),
-          }
-        : transcript,
-      userId: user.id,
-      source: sourceId,
-    });
-    await assistantMessage.save();
-  } catch (e) {
-    console.error("Audio message error:", e);
-    return res.status(500).send({ error: "Server error" });
-  }
-});
+// Set up multer for file uploads (store in /tmp)
+const upload = multer({ dest: "/tmp/" });
 
 router.post("/add", async (req: Request, res: Response) => {
   try {
@@ -334,5 +248,117 @@ router.post("/init", async (req: Request, res: Response) => {
     res.status(500).send({ error: "Server error" });
   }
 });
+
+router.post(
+  "/add-audio",
+  upload.single("audio"),
+  async (req: Request, res: Response) => {
+    try {
+      const user: IUser | null = await checkAuthToken(req);
+      if (!user) {
+        return res.status(401).send({ error: "Unauthorized" });
+      }
+
+      const source = req.body.sourceId;
+      const format = req.body.format || "wav"; // default to wav
+      const userContext = req.body.context ? JSON.parse(req.body.context) : {};
+
+      if (!req?.file || !source) {
+        return res
+          .status(400)
+          .send({ error: "Missing audio file or sourceId" });
+      }
+
+      const audioPath = req.file.path;
+      const audioBuffer = fs.readFileSync(audioPath);
+      const audioBase64 = audioBuffer.toString("base64");
+      const freshMessages = await getRecentMessages(user.id);
+      const parsedMessages = freshMessages.map(
+        (message: any) => message.content
+      );
+
+      // Call OpenAI audio response
+      const audioResponse = await getOpenAIAudioResponse(
+        parsedMessages,
+        audioBase64,
+        format
+      );
+
+      // Respond to the client immediately
+      res.status(200).send({
+        message: "ok",
+        audioData: audioResponse.audioData,
+        transcript: audioResponse.transcript,
+      });
+
+      // 1. Transcribe the user's audio
+      let transcription = "";
+
+      try {
+        const formData = new FormData();
+        formData.append("file", fs.createReadStream(audioPath), {
+          filename: req.file!.originalname || "audio.wav",
+        });
+        formData.append("model", "gpt-4o-transcribe");
+        formData.append(
+          "language",
+          (user.starPreferences?.language || "en-US").split("-")[0]
+        );
+
+        const openaiKey = process.env.OPENAI_KEY;
+        const response = await nodeFetch(
+          "https://api.openai.com/v1/audio/transcriptions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openaiKey}`,
+              ...formData.getHeaders(),
+            },
+            body: formData,
+          }
+        );
+        const data = await response.json();
+        if (response.ok && data.text) {
+          transcription = data.text;
+        }
+      } catch (err) {
+        console.error("Transcription error:", err);
+      }
+
+      // 2. Save the user message (with transcription)
+
+      // Build content object to match DB structure
+      const userContentObj: any = {
+        message: "[AUDIO]",
+        event: "user",
+        userContext,
+        promptVersion: process.env.PROMPT_VERSION,
+      };
+
+      if (transcription) userContentObj.message = transcription;
+
+      const newStarMessage: IStarMessage = new StarMessage({
+        content: {
+          role: "user",
+          content: JSON.stringify(userContentObj),
+        },
+        userId: user.id,
+        source,
+      });
+      await newStarMessage.save();
+
+      // 3. Save star's response
+      const starResponse: IStarMessage = new StarMessage({
+        content: audioResponse.transcript,
+        userId: user.id,
+        source,
+      });
+      await starResponse.save();
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({ error: "Server error" });
+    }
+  }
+);
 
 export default router;

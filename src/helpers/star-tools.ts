@@ -35,7 +35,7 @@ export const tools: ChatCompletionTool[] = [
           },
         },
         additionalProperties: false,
-        required: ["voiceName"],
+        required: ["voice"],
       },
     },
   },
