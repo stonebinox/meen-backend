@@ -128,6 +128,8 @@ const getOpenAIAudioResponse = async (
     }
   );
 
+  console.log("SessionData", sessionRes);
+
   if (!sessionRes.ok) {
     const err = await sessionRes.text();
     throw new Error(`Failed to create realtime session: ${err}`);
