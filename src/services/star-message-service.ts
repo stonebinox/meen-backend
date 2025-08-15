@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { tmpdir } from "os";
+import nodeFetch from "node-fetch";
 
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
 import StarMessage, { IStarMessage } from "../models/StarMessage";
@@ -108,23 +109,67 @@ const getOpenAIAudioResponse = async (
     },
   ];
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-realtime-preview-2025-06-03",
-    messages: finalMessages,
-    modalities: ["text", "audio"],
-    audio: {
-      format: "wav",
-      voice: "shimmer",
-    },
-  });
+  // Use OpenAI Realtime API for gpt-4o-realtime-preview-2025-06-03
+  const apiKey = process.env.OPENAI_KEY;
+  // 1. Create a session
+  const sessionRes = await nodeFetch(
+    "https://api.openai.com/v1/realtime/sessions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-realtime-preview-2025-06-03",
+        voice: "shimmer",
+        modalities: ["text", "audio"],
+      }),
+    }
+  );
 
-  if (response.choices[0].message.audio) {
-    console.log("audiox");
+  if (!sessionRes.ok) {
+    const err = await sessionRes.text();
+    throw new Error(`Failed to create realtime session: ${err}`);
+  }
+
+  const sessionData = await sessionRes.json();
+  const sessionId = sessionData.id;
+
+  // 2. Send the message to the session
+  const messageRes = await nodeFetch(
+    `https://api.openai.com/v1/realtime/sessions/${sessionId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: finalMessages,
+        modalities: ["text", "audio"],
+        audio: {
+          format: "wav",
+          voice: "shimmer",
+        },
+      }),
+    }
+  );
+
+  if (!messageRes.ok) {
+    const err = await messageRes.text();
+    throw new Error(`Failed to send message to realtime session: ${err}`);
+  }
+
+  const messageData = await messageRes.json();
+
+  // 3. Parse the response
+  if (messageData.choices && messageData.choices[0].message.audio) {
     const {
       message: {
         audio: { data, transcript },
       },
-    } = response.choices[0] as any;
+    } = messageData.choices[0];
 
     return {
       audioData: data,
@@ -132,11 +177,9 @@ const getOpenAIAudioResponse = async (
     };
   }
 
-  console.log("messagex");
-
-  const { choices } = response;
+  // If no audio, return the message as transcript
+  const { choices } = messageData;
   const { message } = choices[0];
-
   return {
     audioData: null,
     transcript: message,
