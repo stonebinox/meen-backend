@@ -156,6 +156,8 @@ const getOpenAIAudioResponse = async (
     }
   );
 
+  console.log(messageRes);
+
   if (!messageRes.ok) {
     const err = await messageRes.text();
     throw new Error(`Failed to send message to realtime session: ${err}`);
