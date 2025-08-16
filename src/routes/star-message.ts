@@ -286,6 +286,12 @@ router.post(
         role = req.body.role;
       }
 
+      let currentLocation = null;
+
+      if (req?.body?.currentLocation) {
+        currentLocation = JSON.parse(req.body.currentLocation);
+      }
+
       const audioPath = req.file.path;
       const { base64: audioBase64, format: audioFormat } = await toMp3(
         audioPath
@@ -312,7 +318,8 @@ router.post(
         parsedMessages,
         audioBase64,
         audioFormat,
-        role
+        role,
+        currentLocation
       );
 
       let audioData: string | null = null;
@@ -400,6 +407,7 @@ router.post(
           userContext: {
             ...userContext,
             currentSpeaker: role,
+            currentLocation,
           },
           promptVersion: process.env.PROMPT_VERSION,
         };

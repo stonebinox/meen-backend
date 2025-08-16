@@ -24,6 +24,16 @@ import { searchMusic } from "./youtube-service";
 import { getPlaceSuggestion } from "./google-maps-service";
 import { getVoiceByName } from "./voice-service";
 
+export interface Coords {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  altitude?: number;
+  altitudeAccuracy?: number;
+  heading?: number;
+  speed?: number;
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
 });
@@ -82,7 +92,8 @@ const getOpenAIAudioResponse = async (
   messages: ChatCompletionMessageParam[],
   audioBase64: string | null = null,
   format: string = "wav",
-  role: string = "driver"
+  role: string = "driver",
+  currentLocation: Coords | null = null
 ) => {
   const apiKey = process.env.OPENAI_KEY!;
   const model = "gpt-4o-audio-preview";
@@ -95,6 +106,10 @@ const getOpenAIAudioResponse = async (
         {
           type: "text",
           text: `The current speaker is the ${role}`,
+        },
+        {
+          type: "text",
+          text: `The user's current coordinates are ${currentLocation?.latitude}, ${currentLocation?.longitude}`,
         },
         { type: "input_audio", input_audio: { data: audioBase64, format } }, // <-- audio in (base64)
       ],
