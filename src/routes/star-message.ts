@@ -15,6 +15,7 @@ import {
   handleToolCalls,
   initConversation,
   parseToolCall,
+  transcribeAudio,
   triggerEvent,
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
@@ -261,7 +262,6 @@ router.post(
       }
 
       const source = req.body.sourceId;
-      const format = req.body.format || "wav"; // default to wav
       const userContext = req.body.context ? JSON.parse(req.body.context) : {};
 
       if (!req?.file || !source) {
@@ -297,89 +297,117 @@ router.post(
       }
 
       parsedMessages = parsedMessages.reverse();
-      parsedMessages = parsedMessages.map((message) => ({
-        role: message.role,
-        content: [
-          {
-            type: "text",
-            text: message.content,
-          },
-        ],
-      }));
 
       // Call OpenAI audio response
-      const audioResponse = await getOpenAIAudioResponse(
+      let message = await getOpenAIAudioResponse(
         parsedMessages,
         audioBase64,
         audioFormat
       );
 
+      let audioData: string | null = null;
+      let transcript = "";
+      let audioId = null;
+      let toolResponse = null;
+      let hadToolCalls = false;
+
+      if (message?.tool_calls) {
+        hadToolCalls = true;
+        const transcription = await transcribeAudio(audioBase64, audioFormat);
+        const userContentObj: any = {
+          message: transcription,
+          event: "user",
+          userContext,
+          promptVersion: process.env.PROMPT_VERSION,
+        };
+
+        const newStarMessage: IStarMessage = new StarMessage({
+          content: {
+            role: "user",
+            content: JSON.stringify(userContentObj),
+          },
+          userId: user.id,
+          source,
+        });
+        await newStarMessage.save();
+
+        const starResponse: IStarMessage = new StarMessage({
+          content: message,
+          userId: user.id,
+          source,
+        });
+        await starResponse.save();
+
+        await handleToolCalls(message.tool_calls, user.id, source);
+
+        for (let i = 0; i < message.tool_calls.length; i++) {
+          const tool = message.tool_calls[i];
+          toolResponse = await parseToolCall(tool, user.id, source);
+        }
+
+        const messages = await getRecentMessages(user.id);
+        const reversed = messages.reverse();
+        message = await getOpenAIAudioResponse(
+          reversed.map((message) => message.content)
+        );
+      }
+
+      if (message?.audio?.data) {
+        audioData = message.audio.data;
+        audioId = message.audio.id;
+
+        if (message.audio.transcript) {
+          transcript = message.audio.transcript;
+        }
+      }
+
+      if (typeof message?.content === "string") {
+        transcript = message.content;
+      }
+
       // Respond to the client immediately
       res.status(200).send({
         message: "ok",
-        audioData: audioResponse.audioData,
-        transcript: audioResponse.transcript,
+        audioData,
+        transcript,
       });
 
-      // 1. Transcribe the user's audio
-      let transcription = "";
+      if (!hadToolCalls) {
+        // 1. Transcribe the user's audio
+        let transcription = null;
 
-      try {
-        const formData = new FormData();
-        formData.append("file", fs.createReadStream(audioPath), {
-          filename: req.file!.originalname || "audio.wav",
-        });
-        formData.append("model", "gpt-4o-transcribe");
-        formData.append(
-          "language",
-          (user.starPreferences?.language || "en-US").split("-")[0]
-        );
-
-        const openaiKey = process.env.OPENAI_KEY;
-        const response = await nodeFetch(
-          "https://api.openai.com/v1/audio/transcriptions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openaiKey}`,
-              ...formData.getHeaders(),
-            },
-            body: formData,
-          }
-        );
-        const data = await response.json();
-        if (response.ok && data.text) {
-          transcription = data.text;
+        try {
+          transcription = await transcribeAudio(audioBase64, audioFormat);
+        } catch (err) {
+          console.error("Transcription error:", err);
         }
-      } catch (err) {
-        console.error("Transcription error:", err);
+
+        // 2. Save the user message (with transcription)
+        const userContentObj: any = {
+          message: "[AUDIO]",
+          event: "user",
+          userContext,
+          promptVersion: process.env.PROMPT_VERSION,
+        };
+
+        if (transcription) userContentObj.message = transcription;
+
+        const newStarMessage: IStarMessage = new StarMessage({
+          content: {
+            role: "user",
+            content: JSON.stringify(userContentObj),
+          },
+          userId: user.id,
+          source,
+        });
+        await newStarMessage.save();
       }
-
-      // 2. Save the user message (with transcription)
-      const userContentObj: any = {
-        message: "[AUDIO]",
-        event: "user",
-        userContext,
-        promptVersion: process.env.PROMPT_VERSION,
-      };
-
-      if (transcription) userContentObj.message = transcription;
-
-      const newStarMessage: IStarMessage = new StarMessage({
-        content: {
-          role: "user",
-          content: JSON.stringify(userContentObj),
-        },
-        userId: user.id,
-        source,
-      });
-      await newStarMessage.save();
 
       // 3. Save star's response
       const starResponse: IStarMessage = new StarMessage({
         content: {
           role: "assistant",
-          content: audioResponse.transcript,
+          content: transcript,
         },
         userId: user.id,
         source,

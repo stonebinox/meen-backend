@@ -136,10 +136,10 @@ export const generateInitialStarInstruction = async (
 
       ## Output Format (Required)
 
-      Respond **only** in this JSON structure:
+      Along with audio output, respond in this JSON structure:
       \`\`\`json
       {
-        "message": string, // what you actually say, speech-first, not written-first
+        "message": string, // transcript of what you actually say, speech-first, not written-first
         "data": object, // any extra data if needed by tool calls or as a result of tool calls
         "callback": function, // if needed, else null
         "speechInstructions": string, // **ONLY** for when "TTS Provider" is "openai": describe voice (tone, phrasing, etc.) in English, for TTS. Leave this field blank for other TTS providers

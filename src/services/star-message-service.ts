@@ -78,34 +78,31 @@ const initConversation = async (
   await starResponse.save();
 };
 
-interface AudioResponse {
-  audioData: string | null; // base64
-  transcript: string;
-  audioId: string | null;
-}
-
 const getOpenAIAudioResponse = async (
   messages: ChatCompletionMessageParam[],
-  audioBase64: string,
+  audioBase64: string | null = null,
   format: string = "wav"
-): Promise<AudioResponse> => {
+) => {
   const apiKey = process.env.OPENAI_KEY!;
   const model = "gpt-4o-audio-preview";
   const voice = "shimmer";
 
-  const userAudioMessage = {
-    role: "user",
-    content: [
-      { type: "input_audio", input_audio: { data: audioBase64, format } }, // <-- audio in (base64)
-    ],
-  };
+  if (audioBase64) {
+    const userAudioMessage = {
+      role: "user",
+      content: [
+        { type: "input_audio", input_audio: { data: audioBase64, format } }, // <-- audio in (base64)
+      ],
+    };
+    messages.push(userAudioMessage as ChatCompletionMessageParam);
+  }
 
   const body = {
     model,
-    // Ask for AUDIO OUT here (voice + container); this is valid on Chat Completions for the 4o-audio preview.
     audio: { voice, format }, // <-- audio out
     modalities: ["text", "audio"],
-    messages: [...messages, userAudioMessage],
+    messages,
+    tools,
   };
 
   const resp = await nodeFetch("https://api.openai.com/v1/chat/completions", {
@@ -123,23 +120,9 @@ const getOpenAIAudioResponse = async (
   }
 
   const data = await resp.json();
-  let audioData: string | null = null;
-  let transcript = "";
-  let audioId = null;
   const message = data?.choices?.[0]?.message;
 
-  if (message?.audio && message.audio.data) {
-    audioData = message.audio.data;
-    audioId = message.audio.id;
-  }
-
-  if (message?.audio && message.audio.transcript) {
-    transcript = message.audio.transcript;
-  } else if (typeof message?.content === "string") {
-    transcript = message.content;
-  }
-
-  return { audioData, transcript: transcript?.trim?.() || "", audioId };
+  return message;
 };
 
 const getOpenAIResponse = async (
