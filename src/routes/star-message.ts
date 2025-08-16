@@ -299,7 +299,10 @@ router.post(
           user,
           car?.color || "Green"
         );
-        parsedMessages.push(systemMessage);
+        parsedMessages.push({
+          role: "system",
+          content: systemMessage,
+        });
       }
 
       parsedMessages = parsedMessages.reverse();
