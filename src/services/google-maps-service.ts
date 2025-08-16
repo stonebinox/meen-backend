@@ -9,8 +9,6 @@ export const getPlaceSuggestion = async (input: string, location: string) => {
     const response = await fetch(url);
     const results = await response.json();
 
-    console.log("searchx", results);
-
     if (results.status === "OK") {
       return results.results;
     } else {
