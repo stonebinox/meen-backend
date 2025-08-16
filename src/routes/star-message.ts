@@ -343,6 +343,7 @@ router.post(
         for (let i = 0; i < message.tool_calls.length; i++) {
           const tool = message.tool_calls[i];
           toolResponse = await parseToolCall(tool, user.id, source);
+          console.log("toolx", toolResponse);
         }
 
         const messages = await getRecentMessages(user.id);
@@ -370,6 +371,7 @@ router.post(
         message: "ok",
         audioData,
         transcript,
+        toolResponse,
       });
 
       if (!hadToolCalls) {
