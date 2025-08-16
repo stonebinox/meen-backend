@@ -80,114 +80,66 @@ const initConversation = async (
 
 interface AudioResponse {
   audioData: string | null; // base64
-  transcript: string | ChatCompletionMessage;
+  transcript: string;
+  audioId: string | null;
 }
 
 const getOpenAIAudioResponse = async (
   messages: ChatCompletionMessageParam[],
   audioBase64: string,
-  format: "wav" | "mp3"
+  format: string = "wav"
 ): Promise<AudioResponse> => {
-  // Attach audio as an additional "input_audio" message segment
-  const finalMessages: ChatCompletionMessageParam[] = [
-    ...messages,
-    {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: `The following is the audio message from the user following the rules of promptVersion: ${process.env.PROMPT_VERSION}:`,
-        },
-        {
-          type: "input_audio",
-          input_audio: {
-            data: audioBase64,
-            format, // or "mp3"
-          },
-        },
-      ],
-    },
-  ];
+  const apiKey = process.env.OPENAI_KEY!;
+  const model = "gpt-4o-audio-preview";
+  const voice = "shimmer";
 
-  // Use OpenAI Realtime API for gpt-4o-realtime-preview-2025-06-03
-  const apiKey = process.env.OPENAI_KEY;
-  // 1. Create a session
-  const sessionRes = await nodeFetch(
-    "https://api.openai.com/v1/realtime/sessions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2025-06-03",
-        voice: "shimmer",
-        modalities: ["text", "audio"],
-      }),
-    }
-  );
-
-  console.log("SessionData", sessionRes);
-
-  if (!sessionRes.ok) {
-    const err = await sessionRes.text();
-    throw new Error(`Failed to create realtime session: ${err}`);
-  }
-
-  const sessionData = await sessionRes.json();
-  const sessionId = sessionData.id;
-
-  // 2. Send the message to the session
-  const messageRes = await nodeFetch(
-    `https://api.openai.com/v1/realtime/sessions/${sessionId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: finalMessages,
-        modalities: ["text", "audio"],
-        audio: {
-          format: "wav",
-          voice: "shimmer",
-        },
-      }),
-    }
-  );
-
-  console.log(messageRes);
-
-  if (!messageRes.ok) {
-    const err = await messageRes.text();
-    throw new Error(`Failed to send message to realtime session: ${err}`);
-  }
-
-  const messageData = await messageRes.json();
-
-  // 3. Parse the response
-  if (messageData.choices && messageData.choices[0].message.audio) {
-    const {
-      message: {
-        audio: { data, transcript },
-      },
-    } = messageData.choices[0];
-
-    return {
-      audioData: data,
-      transcript,
-    };
-  }
-
-  // If no audio, return the message as transcript
-  const { choices } = messageData;
-  const { message } = choices[0];
-  return {
-    audioData: null,
-    transcript: message,
+  const userAudioMessage = {
+    role: "user",
+    content: [
+      { type: "input_audio", input_audio: { data: audioBase64, format } }, // <-- audio in (base64)
+    ],
   };
+
+  const body = {
+    model,
+    // Ask for AUDIO OUT here (voice + container); this is valid on Chat Completions for the 4o-audio preview.
+    audio: { voice, format }, // <-- audio out
+    modalities: ["text", "audio"],
+    messages: [...messages, userAudioMessage],
+  };
+
+  const resp = await nodeFetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`OpenAI chat.completions error: ${err}`);
+  }
+
+  const data = await resp.json();
+  let audioData: string | null = null;
+  let transcript = "";
+  let audioId = null;
+  const message = data?.choices?.[0]?.message;
+
+  if (message?.audio && message.audio.data) {
+    audioData = message.audio.data;
+    audioId = message.audio.id;
+  }
+
+  if (message?.audio && message.audio.transcript) {
+    transcript = message.audio.transcript;
+  } else if (typeof message?.content === "string") {
+    transcript = message.content;
+  }
+
+  return { audioData, transcript: transcript?.trim?.() || "", audioId };
 };
 
 const getOpenAIResponse = async (

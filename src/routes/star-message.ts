@@ -19,6 +19,7 @@ import {
 } from "../services/star-message-service";
 import { getCarById } from "../services/car-service";
 import { generateInitialStarInstruction } from "../helpers/generate-initial-star-instruction";
+import { toMp3, toWav16kMono } from "../helpers/media";
 
 const router = express.Router();
 
@@ -269,19 +270,48 @@ router.post(
           .send({ error: "Missing audio file or sourceId" });
       }
 
+      let car = null;
+
+      if (source !== "app") {
+        car = await getCarById(source);
+
+        if (!car) {
+          return res.status(400).send({ error: "Invalid source" });
+        }
+      }
+
       const audioPath = req.file.path;
-      const audioBuffer = fs.readFileSync(audioPath);
-      const audioBase64 = audioBuffer.toString("base64");
-      const freshMessages = await getRecentMessages(user.id);
-      const parsedMessages = freshMessages.map(
-        (message: any) => message.content
+      const { base64: audioBase64, format: audioFormat } = await toMp3(
+        audioPath
       );
+
+      const freshMessages = await getRecentMessages(user.id);
+      let parsedMessages = freshMessages.map((message: any) => message.content);
+
+      if (parsedMessages[parsedMessages.length - 1]?.role !== "system") {
+        const systemMessage = await generateInitialStarInstruction(
+          user,
+          car?.color || "Green"
+        );
+        parsedMessages.push(systemMessage);
+      }
+
+      parsedMessages = parsedMessages.reverse();
+      parsedMessages = parsedMessages.map((message) => ({
+        role: message.role,
+        content: [
+          {
+            type: "text",
+            text: message.content,
+          },
+        ],
+      }));
 
       // Call OpenAI audio response
       const audioResponse = await getOpenAIAudioResponse(
         parsedMessages,
         audioBase64,
-        format
+        audioFormat
       );
 
       // Respond to the client immediately
@@ -326,8 +356,6 @@ router.post(
       }
 
       // 2. Save the user message (with transcription)
-
-      // Build content object to match DB structure
       const userContentObj: any = {
         message: "[AUDIO]",
         event: "user",
@@ -349,7 +377,10 @@ router.post(
 
       // 3. Save star's response
       const starResponse: IStarMessage = new StarMessage({
-        content: audioResponse.transcript,
+        content: {
+          role: "assistant",
+          content: audioResponse.transcript,
+        },
         userId: user.id,
         source,
       });
