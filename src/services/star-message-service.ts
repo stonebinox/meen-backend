@@ -81,7 +81,8 @@ const initConversation = async (
 const getOpenAIAudioResponse = async (
   messages: ChatCompletionMessageParam[],
   audioBase64: string | null = null,
-  format: string = "wav"
+  format: string = "wav",
+  role: string = "driver"
 ) => {
   const apiKey = process.env.OPENAI_KEY!;
   const model = "gpt-4o-audio-preview";
@@ -91,6 +92,10 @@ const getOpenAIAudioResponse = async (
     const userAudioMessage = {
       role: "user",
       content: [
+        {
+          type: "text",
+          text: `The current speaker is the ${role}`,
+        },
         { type: "input_audio", input_audio: { data: audioBase64, format } }, // <-- audio in (base64)
       ],
     };

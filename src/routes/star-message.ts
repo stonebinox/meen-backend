@@ -280,6 +280,12 @@ router.post(
         }
       }
 
+      let role = "driver";
+
+      if (req?.body.role) {
+        role = req.body.role;
+      }
+
       const audioPath = req.file.path;
       const { base64: audioBase64, format: audioFormat } = await toMp3(
         audioPath
@@ -302,7 +308,8 @@ router.post(
       let message = await getOpenAIAudioResponse(
         parsedMessages,
         audioBase64,
-        audioFormat
+        audioFormat,
+        role
       );
 
       let audioData: string | null = null;
@@ -343,7 +350,6 @@ router.post(
         for (let i = 0; i < message.tool_calls.length; i++) {
           const tool = message.tool_calls[i];
           toolResponse = await parseToolCall(tool, user.id, source);
-          console.log("toolx", toolResponse);
         }
 
         const messages = await getRecentMessages(user.id);
@@ -388,7 +394,10 @@ router.post(
         const userContentObj: any = {
           message: "[AUDIO]",
           event: "user",
-          userContext,
+          userContext: {
+            ...userContext,
+            currentSpeaker: role,
+          },
           promptVersion: process.env.PROMPT_VERSION,
         };
 
